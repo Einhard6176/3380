@@ -5,7 +5,7 @@ import numpy as np
 #######################################################################################
                     # Return recommendations based on reviews
 #######################################################################################
-def find_reviews(query,reviews=reviews, n_results=5):
+def find_reviews(query,reviews, n_results=5):
     # Create vector from query and compare with global embedding
     sentence = [query]
     sentence_vector = np.array(embed(sentence))
@@ -22,15 +22,15 @@ def find_reviews(query,reviews=reviews, n_results=5):
     print(top_n_indices)
     return top_n_indices
 
-def find_books(query, reviews=reviews, books=books):
-    top_n_indices = find_reviews(query)
+def find_books(query, reviews, books, n_results=5):
+    top_n_indices = find_reviews(query, reviews, n_results)
     return books[books.book_id.isin(reviews.iloc[top_n_indices].book_id.tolist())][['title', 'name','description', 'weighted_score']].fillna('')
 
 #######################################################################################
                     # Return recommendations based on descriptions
 #######################################################################################
 
-def find_description(query, books=books, n_results=10):
+def find_description(query, books, n_results=10):
     # Create vector from query and compare with global embedding
     sentence = [query]
     sentence_vector = np.array(embed(sentence))
@@ -46,6 +46,6 @@ def find_description(query, books=books, n_results=10):
     print(*top_n_list, sep='\n\n')
     return top_n_indices
 
-def find_books_description(query, reviews=reviews, books=books):
+def find_books_description(query, reviews, books):
     top_n_indices = find_description(query)
     return books[books.book_id.isin(books.iloc[top_n_indices].book_id.tolist())][['title', 'name','description', 'weighted_score']].fillna('')
