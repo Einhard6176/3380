@@ -106,6 +106,22 @@ def load_sentences(input_books):
 
     return sentences, sentence_vectors
 
+@st.cache
+def show_recommendations(query, reviews, books, n_results):
+    top_n_indices = find_reviews(query, reviews, n_results)
+    book_recommends = find_books(query, reviews, books, n_results)
+    book_recommends['for_url'] = book_recommends['book_id'].astype(str) + '.' + book_recommends['title'].replace(r'\(.*$', '', regex = True)
+
+    for idx, i in enumerate(reviews.iloc[top_n_indices].index):
+        print(idx)
+        print(i)
+        print('Book title:', book_recommends[book_recommends.book_id == (reviews[reviews.index == i].book_id.tolist()[0])].title.tolist()[0])
+        print('Author:', book_recommends[book_recommends.book_id == (reviews[reviews.index == i].book_id.tolist()[0])].name.tolist()[0])
+        print('Weighted Score:', books[books.book_id.isin(reviews[reviews.index == i].book_id.tolist())].weighted_score.tolist()[0])
+        print('Similar review:', reviews[reviews.index == i].review_text.tolist()[0])
+        print('Goodreads Link:', 'https://www.goodreads.com/book/show/' + book_recommends[book_recommends.book_id == (reviews[reviews.index == i].book_id.tolist()[0])].for_url.tolist()[0])
+        print('\n\n')
+
 #######################################################################################
                             # Load variables and data
 #######################################################################################
@@ -137,6 +153,7 @@ n_results = st.sidebar.slider('Select how many results to show',
 sentence = st.text_input('Input your sentence here')
 if sentence:
     st.dataframe(find_books(sentence, reviews=reviews, books=books, n_results=n_results-1))
+    st.write(show_recommendations(sentence, reviews=reviews, books=books, n_results=n_results))
     if psutil.virtual_memory()[2] > 50:
         st.write('Clearing cache to give you the best results. Hang on!')
         st.caching.clear_cache()
