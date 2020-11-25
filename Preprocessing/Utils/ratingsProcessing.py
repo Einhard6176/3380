@@ -15,7 +15,3 @@ def filter_ratings(df=ratings, min_book_ratings_count = 10, min_users_rating_cou
     del filter_books, filter_users
     return filtered_reviews
 
-def create_train_split(df=filtered_reviews, test_size=100000):
-    df_train = df[:-test_size]
-    df_test = [-test_size:]
-    return df_train, df_test

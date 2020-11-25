@@ -8,7 +8,7 @@ import tensorflow_hub as hub
 # To silence warnings from TensorFlow
 import os
 import logging
-import warnings;
+import warnings
 warnings.filterwarnings('ignore')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # FATAL
 logging.getLogger('tensorflow').setLevel(logging.FATAL)
@@ -19,7 +19,6 @@ import joblib
 # To create webapp
 import streamlit as st
 import psutil
-
 
 #######################################################################################
                             # Load functions
@@ -92,6 +91,20 @@ def find_books_description(query, reviews, books):
     return books[books.book_id.isin(books.iloc[top_n_indices].book_id.tolist())][['title', 'name','description', 'weighted_score']].fillna('')
 
 
+                    # Return recommendations based on reviews
+
+@st.cache
+def load_sentences(input_books):
+    '''
+    Function to load and embed a book's sentences
+    '''
+    # Copy sentence column to new variable
+    sentences = input_books['review_text']
+
+    # Vectorize sentences
+    sentence_vectors = embed(sentences)
+
+    return sentences, sentence_vectors
 
 #######################################################################################
                             # Load variables and data
@@ -123,7 +136,7 @@ n_results = st.sidebar.slider('Select how many results to show',
                                 1, 50, value=10, step=1)
 sentence = st.text_input('Input your sentence here')
 if sentence:
-    st.write(find_books(sentence, reviews=reviews, books=books, n_results=n_results-1))
+    st.dataframe(find_books(sentence, reviews=reviews, books=books, n_results=n_results-1))
     if psutil.virtual_memory()[2] > 50:
         st.write('Clearing cache to give you the best results. Hang on!')
         st.caching.clear_cache()
