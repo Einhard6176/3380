@@ -22,6 +22,7 @@ import joblib
 # To create webapp
 import psutil
 import streamlit as st
+st.set_page_config(layout="wide")
 from streamlit import caching
 
 
@@ -126,7 +127,7 @@ def findClusters(sentences, sentence_vectors, k, n_results):
         clusteredSentences = list(sentences.iloc[idx])
         clusters.append(sentences.iloc[idx])
 
-        st.write(f'**Cluster #{i+1} sentences:**\n')
+        st.write(f'**Cluster #{i+1} reviews:**\n')
         for sent in clusteredSentences:
             '\t'
             st.write(sent)
@@ -161,6 +162,7 @@ st.sidebar.markdown(
     *Read books, not reviews!*
     '''
 )
+
 n_results = st.sidebar.slider('Select how many results to show',
                                 1, 50, value=10, step=1)
 links = st.sidebar.checkbox('Show Goodreads links.')
@@ -171,7 +173,6 @@ if sentence:
     #st.dataframe(find_books(sentence, reviews=reviews, books=books, n_results=n_results-1))
     top_n_indices, book_recommends = show_recommendations(sentence, reviews=reviews, books=books, n_results=n_results-1)
     common_titles = []
-
     for idx, i in enumerate(reviews.iloc[top_n_indices].index):
         '**---**'
 
@@ -188,12 +189,12 @@ if sentence:
 
         button = st.button(label='Load review clusters for this book?', key=idx)
         if button:
-            n_clusters = st.sidebar.slider('Select how many clusters to create',
-                                    3, 10, value=8, step=1)
-            n_sentences = st.sidebar.slider('Select how many sentences per cluster to show',
-                                    1, 10, value=5, step=1)
+            #n_clusters = st.sidebar.slider('Select how many clusters to create',
+            #                        3, 10, value=8, step=1)
+            #n_sentences = st.sidebar.slider('Select how many reviews per cluster to show',
+            #                        1, 10, value=5, step=1)
             sentences, sentence_vectors = embedSentences(book_title)
-            findClusters(sentences, sentence_vectors, k=n_clusters, n_results=n_sentences)
+            findClusters(sentences, sentence_vectors, k=8, n_results=5)
 
         if links:
             good_reads_link = 'https://www.goodreads.com/book/show/' + book_recommends[book_recommends.book_id == (reviews[reviews.index == i].book_id.tolist()[0])].for_url.tolist()[0].replace('\s', '\\')
