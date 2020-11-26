@@ -157,6 +157,7 @@ embed, sentence_array, descriptions_array = load_embeddings()
 
 st.sidebar.markdown(
     '''
+    # 3380 Books
     *Read books, not reviews!*
     '''
 )
