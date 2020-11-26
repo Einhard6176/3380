@@ -22,7 +22,8 @@ import joblib
 # To create webapp
 import psutil
 import streamlit as st
-import streamlit.components.v1 as components
+from streamlit import caching
+
 
 # To sort final recommendation list
 from collections import Counter
@@ -113,7 +114,7 @@ def embedSentences(book_title):
     sentence_vectors = embed(sentences)
     return sentences, sentence_vectors
 
-@st.cache(suppress_st_warning=True)
+
 def findClusters(sentences, sentence_vectors, k, n_results):
     kmeans = KMeans(n_clusters=k)
     kmeans.fit(sentence_vectors)
@@ -127,6 +128,7 @@ def findClusters(sentences, sentence_vectors, k, n_results):
 
         st.write(f'**Cluster #{i+1} sentences:**\n')
         for sent in clusteredSentences:
+            '\t'
             st.write(sent)
             st.write('\n')
 
@@ -151,7 +153,7 @@ embed, sentence_array, descriptions_array = load_embeddings()
                                 # Web App
 #######################################################################################
 
-'''# 3380'''
+'''# 3380 Books'''
 
 st.sidebar.markdown(
     '''
@@ -161,7 +163,7 @@ st.sidebar.markdown(
 n_results = st.sidebar.slider('Select how many results to show',
                                 1, 50, value=10, step=1)
 links = st.sidebar.checkbox('Show Goodreads links.')
-sentence = st.text_input('Input your sentence here')
+sentence = st.text_input('Input')
 if sentence:
     '''## Book recommendations based on your input sentence:'''
     ''' _(In no particular order)_'''
@@ -185,10 +187,10 @@ if sentence:
 
         button = st.button(label='Load review clusters for this book?', key=idx)
         if button:
-            n_clusters = st.slider('Select how many clusters to create',
-                                    2, 12, value=5, step=1)
-            n_sentences = st.slider('Select how many sentences per cluster to show',
-                                    1, 10, value=3, step=1)
+            n_clusters = st.sidebar.slider('Select how many clusters to create',
+                                    3, 10, value=8, step=1)
+            n_sentences = st.sidebar.slider('Select how many sentences per cluster to show',
+                                    1, 10, value=5, step=1)
             sentences, sentence_vectors = embedSentences(book_title)
             findClusters(sentences, sentence_vectors, k=n_clusters, n_results=n_sentences)
 
@@ -203,3 +205,6 @@ if sentence:
     if sidetable.iloc[0]['No. of appearences ----->'] > 1:
         st.sidebar.write('Books that show up more than once given your input:')
         st.sidebar.table(sidetable[sidetable['No. of appearences ----->'] > 1])
+
+if psutil.virtual_memory()[2] > 70:
+    caching.clear_cache()
