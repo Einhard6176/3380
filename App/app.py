@@ -5,10 +5,13 @@ import pandas as pd
 import tensorflow as tf
 import tensorflow_hub as hub
 
+# To create sentence clusters
+from sklearn.cluster import KMeans
+
 # To silence warnings from TensorFlow
 import os
 import logging
-import warnings
+import warnings;
 warnings.filterwarnings('ignore')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # FATAL
 logging.getLogger('tensorflow').setLevel(logging.FATAL)
@@ -17,8 +20,13 @@ logging.getLogger('tensorflow').setLevel(logging.FATAL)
 import joblib
 
 # To create webapp
-import streamlit as st
 import psutil
+import streamlit as st
+import streamlit.components.v1 as components
+
+# To sort final recommendation list
+from collections import Counter
+
 
 #######################################################################################
                             # Load functions
@@ -60,10 +68,10 @@ def find_reviews(query,reviews, n_results=5):
     #print(top_n_indices)
     return top_n_indices
 
-@st.cache
+
 def find_books(query, reviews, books, n_results=5):
     top_n_indices = find_reviews(query, reviews, n_results)
-    return books[books.book_id.isin(reviews.iloc[top_n_indices].book_id.tolist())][['title', 'name','description', 'weighted_score']].fillna('').reset_index().drop('index', axis=1)
+    return books[books.book_id.isin(reviews.iloc[top_n_indices].book_id.tolist())][['title', 'name','description', 'weighted_score', 'book_id']].fillna('').reset_index().drop('index', axis=1)
 
 
                     # Return recommendations based on descriptions
@@ -88,39 +96,40 @@ def find_description(query, books, n_results=10):
 @st.cache
 def find_books_description(query, reviews, books):
     top_n_indices = find_description(query)
-    return books[books.book_id.isin(books.iloc[top_n_indices].book_id.tolist())][['title', 'name','description', 'weighted_score']].fillna('')
-
-
-                    # Return recommendations based on reviews
+    return books[books.book_id.isin(books.iloc[top_n_indices].book_id.tolist())][['title', 'name','description', 'weighted_score', 'book_id']].fillna('')
 
 @st.cache
-def load_sentences(input_books):
-    '''
-    Function to load and embed a book's sentences
-    '''
-    # Copy sentence column to new variable
-    sentences = input_books['review_text']
-
-    # Vectorize sentences
-    sentence_vectors = embed(sentences)
-
-    return sentences, sentence_vectors
-
-@st.cache
-def show_recommendations(query, reviews, books, n_results):
+def show_recommendations(query, reviews, books, n_results=5):
     top_n_indices = find_reviews(query, reviews, n_results)
     book_recommends = find_books(query, reviews, books, n_results)
     book_recommends['for_url'] = book_recommends['book_id'].astype(str) + '.' + book_recommends['title'].replace(r'\(.*$', '', regex = True)
+    return top_n_indices, book_recommends
 
-    for idx, i in enumerate(reviews.iloc[top_n_indices].index):
-        print(idx)
-        print(i)
-        print('Book title:', book_recommends[book_recommends.book_id == (reviews[reviews.index == i].book_id.tolist()[0])].title.tolist()[0])
-        print('Author:', book_recommends[book_recommends.book_id == (reviews[reviews.index == i].book_id.tolist()[0])].name.tolist()[0])
-        print('Weighted Score:', books[books.book_id.isin(reviews[reviews.index == i].book_id.tolist())].weighted_score.tolist()[0])
-        print('Similar review:', reviews[reviews.index == i].review_text.tolist()[0])
-        print('Goodreads Link:', 'https://www.goodreads.com/book/show/' + book_recommends[book_recommends.book_id == (reviews[reviews.index == i].book_id.tolist()[0])].for_url.tolist()[0])
-        print('\n\n')
+# To find book clusters
+
+@st.cache
+def embedSentences(book_title):
+    sentences = reviews_for_cluster[reviews_for_cluster.book_id.isin(books[books.title.isin([book_title])].book_id.tolist())]['review_text']
+    sentence_vectors = embed(sentences)
+    return sentences, sentence_vectors
+
+@st.cache(suppress_st_warning=True)
+def findClusters(sentences, sentence_vectors, k, n_results):
+    kmeans = KMeans(n_clusters=k)
+    kmeans.fit(sentence_vectors)
+    clusters = pd.DataFrame()
+    for i in range(k):
+        centre = kmeans.cluster_centers_[i]
+        ips = np.inner(centre, sentence_vectors)
+        idx = pd.Series(ips).nlargest(n_results).index
+        clusteredSentences = list(sentences.iloc[idx])
+        clusters.append(sentences.iloc[idx])
+
+        st.write(f'**Cluster #{i+1} sentences:**\n')
+        for sent in clusteredSentences:
+            st.write(sent)
+            st.write('\n')
+
 
 #######################################################################################
                             # Load variables and data
@@ -132,6 +141,7 @@ datapath = '/media/einhard/Seagate Expansion Drive/3380_data/data/Filtered books
 # Books and reviews file names and loading
 books_file = 'filtered_books.csv'
 reviews_file = 'filtered_reviews.csv'
+reviews_for_cluster = pd.read_csv('/media/einhard/Seagate Expansion Drive/3380_data/data/Processed/reviews_for_cluster.csv')
 
 books, reviews = data_loader(datapath, books_file, reviews_file)
 embed, sentence_array, descriptions_array = load_embeddings()
@@ -141,7 +151,7 @@ embed, sentence_array, descriptions_array = load_embeddings()
                                 # Web App
 #######################################################################################
 
-st.title('3380')
+'''# 3380'''
 
 st.sidebar.markdown(
     '''
@@ -150,10 +160,46 @@ st.sidebar.markdown(
 )
 n_results = st.sidebar.slider('Select how many results to show',
                                 1, 50, value=10, step=1)
+links = st.sidebar.checkbox('Show Goodreads links.')
 sentence = st.text_input('Input your sentence here')
 if sentence:
-    st.dataframe(find_books(sentence, reviews=reviews, books=books, n_results=n_results-1))
-    st.write(show_recommendations(sentence, reviews=reviews, books=books, n_results=n_results))
-    if psutil.virtual_memory()[2] > 50:
-        st.write('Clearing cache to give you the best results. Hang on!')
-        st.caching.clear_cache()
+    '''## Book recommendations based on your input sentence:'''
+    ''' _(In no particular order)_'''
+    #st.dataframe(find_books(sentence, reviews=reviews, books=books, n_results=n_results-1))
+    top_n_indices, book_recommends = show_recommendations(sentence, reviews=reviews, books=books, n_results=n_results-1)
+    common_titles = []
+
+    for idx, i in enumerate(reviews.iloc[top_n_indices].index):
+        '**---**'
+
+        book_title = book_recommends[book_recommends.book_id == (reviews[reviews.index == i].book_id.tolist()[0])].title.tolist()[0]
+        common_titles.append(book_title)
+
+        f'**Book title:**', book_title
+
+        f'**Author:**', book_recommends[book_recommends.book_id == (reviews[reviews.index == i].book_id.tolist()[0])].name.tolist()[0]
+
+        f'**Weighted Score:**', str(round(books[books.book_id.isin(reviews[reviews.index == i].book_id.tolist())].weighted_score.tolist()[0], 2)), '/ 5'
+
+        f'**Recommended because somebody wrote:**', reviews[reviews.index == i].review_text.tolist()[0]
+
+        button = st.button(label='Load review clusters for this book?', key=idx)
+        if button:
+            n_clusters = st.slider('Select how many clusters to create',
+                                    2, 12, value=5, step=1)
+            n_sentences = st.slider('Select how many sentences per cluster to show',
+                                    1, 10, value=3, step=1)
+            sentences, sentence_vectors = embedSentences(book_title)
+            findClusters(sentences, sentence_vectors, k=n_clusters, n_results=n_sentences)
+
+        if links:
+            good_reads_link = 'https://www.goodreads.com/book/show/' + book_recommends[book_recommends.book_id == (reviews[reviews.index == i].book_id.tolist()[0])].for_url.tolist()[0].replace('\s', '\\')
+            good_reads_link
+
+    # code for sidebar most common tables. Shows table only if there are repeats in the main results
+    most_common = Counter(common_titles).most_common(n_results)
+    sidetable = pd.DataFrame(most_common, index=[x + 1 for x in range(len(most_common))]).rename(columns={0:'Title', 1:'No. of appearences ----->'})
+
+    if sidetable.iloc[0]['No. of appearences ----->'] > 1:
+        st.sidebar.write('Books that show up more than once given your input:')
+        st.sidebar.table(sidetable[sidetable['No. of appearences ----->'] > 1])

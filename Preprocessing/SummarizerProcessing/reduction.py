@@ -17,9 +17,9 @@ def filter_reviews(reviews_df, books_df, min_review_length=30, max_review_length
     reviews_df = reviews_df[~reviews_df.review_text.str.contains(r'\d\/\d', case=False, regex=True, na=False)]
     reviews_df = reviews_df[~reviews_df.review_text.str.contains(r'\d\.\d', case=False, regex=True, na=False)]
     reviews_df = reviews_df[~reviews_df.review_text.str.contains(r'\d\S+\D', case=False, regex=True, na=False)]
+    reviews_df = reviews_df[~reviews_df.review_text.str.contains(r'spoiler', case=False, regex=True, na=False)]
 
     # Remove reviews that contain link to other websites
     reviews_df = reviews_df[~reviews_df.review_text.str.contains(r'http\S+', case=False, regex=True, na=False)]
     reviews_df = reviews_df[~reviews_df.review_text.str.contains(r'www\S+', case=False, regex=True, na=False)]
     return reviews_df
-
