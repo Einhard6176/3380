@@ -2,19 +2,10 @@ import numpy as np
 import pandas as pd
 
 # To process embeddings
-import tensorflow as tf
 import tensorflow_hub as hub
 
 # To create sentence clusters
 from sklearn.cluster import KMeans
-
-# To silence warnings from TensorFlow
-import os
-import logging
-import warnings;
-warnings.filterwarnings('ignore')
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # FATAL
-logging.getLogger('tensorflow').setLevel(logging.FATAL)
 
 # To load saved embeddings
 import joblib
@@ -116,23 +107,67 @@ def embedSentences(book_title):
     return sentences, sentence_vectors
 
 
-def findClusters(sentences, sentence_vectors, k, n_results):
+def findClusters(sentences, sentence_vectors, book_title, k, n_results):
     kmeans = KMeans(n_clusters=k)
     kmeans.fit(sentence_vectors)
-    clusters = pd.DataFrame()
     for i in range(k):
         centre = kmeans.cluster_centers_[i]
         ips = np.inner(centre, sentence_vectors)
         idx = pd.Series(ips).nlargest(n_results).index
         clusteredSentences = list(sentences.iloc[idx])
-        clusters.append(sentences.iloc[idx])
 
-        st.write(f'**Cluster #{i+1} reviews:**\n')
+        '---'
+        st.write(f'**Cluster #{i+1} reviews:** \n\n*Book title: {book_title}*')
         for sent in clusteredSentences:
-            '\t'
             st.write(sent)
-            st.write('\n')
 
+## UI and interactions
+
+def display_results(idx, i, book_recommends, common_titles):
+
+    '**---**'
+    book_title = book_recommends[book_recommends.book_id == (reviews[reviews.   index == i].book_id.tolist()[0])].title.tolist()[0]
+    common_titles.append(book_title)
+
+    f'**Book title:**', book_title
+
+    f'**Author:**', book_recommends[book_recommends.book_id == (reviews[reviews.    index == i].book_id.tolist()[0])].name.tolist()[0]
+
+    f'**Weighted Score:**', str(round(books[books.book_id.isin(reviews[reviews. index == i].book_id.tolist())].weighted_score.tolist()[0], 2)), '/ 5'
+
+    f'**Recommended because somebody wrote:**', reviews[reviews.index == i].    review_text.tolist()[0]
+
+    return book_title
+
+def showRecommendations(sentence, reviews, books, n_results):
+    if sentence:
+        with results:
+            '''## Book recommendations based on your input sentence:'''
+            ''' _(In no particular order)_'''
+            top_n_indices, book_recommends = show_recommendations(sentence, reviews=reviews,    books=books, n_results=n_results-1)
+            common_titles = []
+
+            for idx, i in enumerate(reviews.iloc[top_n_indices].index):
+                '**---**'
+                book_title = display_results(idx,i, book_recommends, common_titles)
+
+                button = st.button(label='Load review clusters for this book?', key=idx)
+                if button:
+                    with clusters:
+                        sentences, sentence_vectors = embedSentences(book_title)
+                        findClusters(sentences, sentence_vectors,book_title, k=n_clusters, n_results=5)
+
+                if links:
+                    good_reads_link = goodreadsURL + book_recommends[book_recommends.book_id == (reviews[reviews.index == i].book_id.tolist() [0])].for_url.tolist()[0].replace(r'\s', '\\')
+                    good_reads_link
+
+        # code for sidebar most common tables. Shows table only if there are repeats in the main results
+        most_common = Counter(common_titles).most_common(n_results)
+        sidetable = pd.DataFrame(most_common, index=[x + 1 for x in range(len(most_common))]).rename(columns={0:'Title', 1:'No. of appearences ----->'})
+
+        if sidetable.iloc[0]['No. of appearences ----->'] > 1:
+            st.sidebar.write('Books that show up more than once given your input:')
+            st.sidebar.table(sidetable[sidetable['No. of appearences ----->'] > 1])
 
 #######################################################################################
                             # Load variables and data
@@ -145,6 +180,9 @@ datapath = '/media/einhard/Seagate Expansion Drive/3380_data/data/Filtered books
 books_file = 'filtered_books.csv'
 reviews_file = 'filtered_reviews.csv'
 reviews_for_cluster = pd.read_csv('/media/einhard/Seagate Expansion Drive/3380_data/data/Processed/reviews_for_cluster.csv')
+
+# Base URL for goodreads
+goodreadsURL = 'https://www.goodreads.com/book/show/'
 
 books, reviews = data_loader(datapath, books_file, reviews_file)
 embed, sentence_array, descriptions_array = load_embeddings()
@@ -163,50 +201,22 @@ st.sidebar.markdown(
     '''
 )
 
-n_results = st.sidebar.slider('Select how many results to show',
-                                1, 50, value=10, step=1)
+n_results = st.sidebar.slider('Select how many book results to show',
+                                1, 25, value=10, step=1)
+
+n_clusters = st.sidebar.slider('Select how many review clusters to generate for a book',
+                                2,10,value=8,step=1)
+
+n_cluster_reviews = st.sidebar.slider('Select how many reviews to show per cluster',
+                                1,10,value=3,step=1)
+
 links = st.sidebar.checkbox('Show Goodreads links.')
 sentence = st.text_input('Input')
-if sentence:
-    '''## Book recommendations based on your input sentence:'''
-    ''' _(In no particular order)_'''
-    #st.dataframe(find_books(sentence, reviews=reviews, books=books, n_results=n_results-1))
-    top_n_indices, book_recommends = show_recommendations(sentence, reviews=reviews, books=books, n_results=n_results-1)
-    common_titles = []
-    for idx, i in enumerate(reviews.iloc[top_n_indices].index):
-        '**---**'
+results, clusters = st.beta_columns(2)
 
-        book_title = book_recommends[book_recommends.book_id == (reviews[reviews.index == i].book_id.tolist()[0])].title.tolist()[0]
-        common_titles.append(book_title)
+showRecommendations(sentence, reviews=reviews,    books=books, n_results=n_results)
 
-        f'**Book title:**', book_title
-
-        f'**Author:**', book_recommends[book_recommends.book_id == (reviews[reviews.index == i].book_id.tolist()[0])].name.tolist()[0]
-
-        f'**Weighted Score:**', str(round(books[books.book_id.isin(reviews[reviews.index == i].book_id.tolist())].weighted_score.tolist()[0], 2)), '/ 5'
-
-        f'**Recommended because somebody wrote:**', reviews[reviews.index == i].review_text.tolist()[0]
-
-        button = st.button(label='Load review clusters for this book?', key=idx)
-        if button:
-            #n_clusters = st.sidebar.slider('Select how many clusters to create',
-            #                        3, 10, value=8, step=1)
-            #n_sentences = st.sidebar.slider('Select how many reviews per cluster to show',
-            #                        1, 10, value=5, step=1)
-            sentences, sentence_vectors = embedSentences(book_title)
-            findClusters(sentences, sentence_vectors, k=8, n_results=5)
-
-        if links:
-            good_reads_link = 'https://www.goodreads.com/book/show/' + book_recommends[book_recommends.book_id == (reviews[reviews.index == i].book_id.tolist()[0])].for_url.tolist()[0].replace('\s', '\\')
-            good_reads_link
-
-    # code for sidebar most common tables. Shows table only if there are repeats in the main results
-    most_common = Counter(common_titles).most_common(n_results)
-    sidetable = pd.DataFrame(most_common, index=[x + 1 for x in range(len(most_common))]).rename(columns={0:'Title', 1:'No. of appearences ----->'})
-
-    if sidetable.iloc[0]['No. of appearences ----->'] > 1:
-        st.sidebar.write('Books that show up more than once given your input:')
-        st.sidebar.table(sidetable[sidetable['No. of appearences ----->'] > 1])
 
 if psutil.virtual_memory()[2] > 70:
+    st.write('Clearing cache to make sure things continue to run smoothly. Hang on!')
     caching.clear_cache()
