@@ -274,11 +274,11 @@ options = st.sidebar.beta_expander('Options')
 
 with options:
     links = st.checkbox('Show Goodreads links.')
-    n_clusters = st.slider('Select how many opinion clusters to generate',
+    n_clusters = st.slider('Select how many themes to search for in the reviews',
                                 2,10,value=3,step=1)
-    n_cluster_reviews = st.slider('Select how many reviews to show per opinion cluster',
+    n_cluster_reviews = st.slider('Select how many reviews to show per theme',
                                 1,10,value=3,step=1)
-    review_max_len = st.slider('Select maximum review length for opinion clusters',
+    review_max_len = st.slider('Select maximum review length each theme group',
                                 30, 350, value=80, step=10)
 
 
