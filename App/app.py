@@ -104,8 +104,9 @@ def show_recommendations(query, reviews, books, n_results=5):
 # To find book clusters
 
 @st.cache
-def embedSentences(book_title):
+def embedSentences(book_title, review_max_len):
     sentences = reviews_for_cluster[reviews_for_cluster.book_id.isin(books[books.title.isin([book_title])].book_id.tolist())]['review_text']
+    sentences = sentences[sentences.str.len() < review_max_len]
     sentence_vectors = embed(sentences)
     return sentences, sentence_vectors
 
@@ -143,7 +144,7 @@ def display_results(idx, i, book_recommends, common_titles):
     return book_title
 
 
-def Recommendations(sentence, reviews, books, n_results, n_clusters, n_cluster_reviews):
+def Recommendations(sentence, reviews, books, n_results, n_clusters, n_cluster_reviews, review_max_len):
     with results:
         '''## Book recommendations based on your input sentence:'''
         ''' _(In no particular order)_'''
@@ -156,7 +157,7 @@ def Recommendations(sentence, reviews, books, n_results, n_clusters, n_cluster_r
             button = st.button(label='Load review clusters for this book?', key=idx)
             if button:
                 with clusters:
-                    sentences, sentence_vectors = embedSentences(book_title)
+                    sentences, sentence_vectors = embedSentences(book_title, review_max_len)
                     findClusters(sentences, sentence_vectors,book_title, k=n_clusters, n_results=5)
             if links:
                 good_reads_link = goodreadsURL + book_recommends[book_recommends.book_id == (reviews[reviews.index == i].book_id.tolist() [0])].for_url.tolist()[0].replace(r'\s', '\\')
@@ -169,7 +170,7 @@ def Recommendations(sentence, reviews, books, n_results, n_clusters, n_cluster_r
         st.sidebar.table(sidetable[sidetable['No. of appearences ----->'] > 1])
 
 # Search by book title
-def searchBookTitles(sentence, reviews, books, n_clusters, n_cluster_reviews):
+def searchBookTitles(sentence, reviews, books, n_clusters, n_cluster_reviews, review_max_len):
     book_title = books[books.title.str.contains(sentence, case=False)].title.tolist()
     with results:
         for idx, bookTitle in enumerate(book_title):
@@ -182,13 +183,13 @@ def searchBookTitles(sentence, reviews, books, n_clusters, n_cluster_reviews):
             showClusters = st.button(label='Show review clusters for this book?', key=idx)
             if showClusters:
                 with clusters:
-                    sentences, sentence_vectors = embedSentences(bookTitle)
+                    sentences, sentence_vectors = embedSentences(bookTitle, review_max_len)
                     findClusters(sentences, sentence_vectors, bookTitle, k=n_clusters, n_results=n_cluster_reviews)
             if links:
                 good_reads_link = goodreadsURL + '.'.join([info.book_id.astype(str).tolist()[0], info.title.replace(r'\(.*$', '', regex = True).tolist()[0]])
                 good_reads_link
 
-def searchAuthorNames(sentence, reviews, books, n_clusters, n_cluster_reviews):
+def searchAuthorNames(sentence, reviews, books, n_clusters, n_cluster_reviews, review_max_len):
     author_name = books[books.name.str.contains(sentence, case=False)].name.tolist()
     with results:
         for idx, authorName in enumerate(author_name):
@@ -201,8 +202,8 @@ def searchAuthorNames(sentence, reviews, books, n_clusters, n_cluster_reviews):
             showClusters = st.button(label='Show review clusters for this book?', key=idx)
             if showClusters:
                 with clusters:
-                    sentences, sentence_vectors = embedSentences(bookTitle)
-                    findClusters(sentences, sentence_vectors, bookTitle, k=n_clusters, n_results=n_cluster_reviews)
+                    sentences, sentence_vectors = embedSentences(info.title.tolist()[0], review_max_len)
+                    findClusters(sentences, sentence_vectors, info.title.tolist()[0], k=n_clusters, n_results=n_cluster_reviews)
             if links:
                 good_reads_link = goodreadsURL + '.'.join([info.book_id.astype(str).tolist()[0], info.title.replace(r'\(.*$', '', regex = True).tolist()[0]])
                 good_reads_link
@@ -247,12 +248,18 @@ n_clusters = st.sidebar.slider('Select how many review clusters to generate for 
                                 2,10,value=8,step=1)
 n_cluster_reviews = st.sidebar.slider('Select how many reviews to show per cluster',
                                 1,10,value=3,step=1)
+review_max_len = st.sidebar.slider('Select maximum review length for review clusters',
+                                30, 350, value=50, step=10)
 
 
 sentence = st.text_input('Input')
 results, clusters = st.beta_columns(2)
 
-if re.match(r'title: ', sentence):
+
+if sentence == None:
+    st.write('Welcome!')
+
+elif re.match(r'title: ', sentence):
     '''
     sentence = sentence.replace('title: ', '')
     if re.match(r'QUOTES', sentence):
@@ -265,7 +272,8 @@ if re.match(r'title: ', sentence):
                     reviews=reviews,
                     books=books,
                     n_clusters=n_clusters,
-                    n_cluster_reviews=n_cluster_reviews)
+                    n_cluster_reviews=n_cluster_reviews,
+                    review_max_len=review_max_len)
 
 elif re.match(r'author: ', sentence):
     '''
@@ -278,7 +286,8 @@ elif re.match(r'author: ', sentence):
                     reviews=reviews,
                     books=books,
                     n_clusters=n_clusters,
-                    n_cluster_reviews=n_cluster_reviews)
+                    n_cluster_reviews=n_cluster_reviews,
+                    review_max_len=review_max_len)
 
 
 elif re.match(r'review: ', sentence):
@@ -287,7 +296,7 @@ elif re.match(r'review: ', sentence):
     pass
 
 
-else:
+elif sentence:
     n_results = st.sidebar.slider('Select how many book results to show',
                                 1, 25, value=10, step=1)
     Recommendations(sentence,
@@ -295,7 +304,8 @@ else:
                     books=books,
                     n_results=n_results,
                     n_clusters=n_clusters,
-                    n_cluster_reviews=n_cluster_reviews)
+                    n_cluster_reviews=n_cluster_reviews,
+                    review_max_len=review_max_len)
 
 
 if psutil.virtual_memory()[2] > 70:
