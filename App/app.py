@@ -97,24 +97,46 @@ def show_recommendations(query, reviews, books, n_results=5):
 @st.cache
 def embedSentences(book_title, review_max_len):
     sentences = reviews_for_cluster[reviews_for_cluster.book_id.isin(books[books.title.isin([book_title])].book_id.tolist())]['review_text']
-    sentences = sentences[sentences.str.len() < review_max_len]
+    sentences = sentences[sentences.str.len() <= review_max_len]
+    sentence_vectors = embed(sentences)
+    return sentences, sentence_vectors
+
+@st.cache
+def embedAuthorSentences(book_title, review_max_len):
+    book_names = books[books.name == book_title].book_id.tolist()
+    sentences = reviews_for_cluster[reviews_for_cluster.book_id.isin(book_names)]['review_text']
+    sentences = sentences[sentences.str.len() <= review_max_len]
     sentence_vectors = embed(sentences)
     return sentences, sentence_vectors
 
 
 def findClusters(sentences, sentence_vectors, book_title, k, n_results):
-    kmeans = KMeans(n_clusters=k)
+    kmeans = KMeans(n_clusters=k, n_init=50, algorithm='full')
     kmeans.fit(sentence_vectors)
+    st.header(f'**Opinion clusters about {book_title}**')
     for i in range(k):
         centre = kmeans.cluster_centers_[i]
         ips = np.inner(centre, sentence_vectors)
         idx = pd.Series(ips).nlargest(n_results).index
         clusteredSentences = list(sentences.iloc[idx])
-
         '---'
-        st.write(f'**Cluster #{i+1} reviews:** \n\n*Book title: {book_title}*')
+        st.write(f'**Cluster #{i+1}**')
         for sent in clusteredSentences:
-            st.write(sent)
+                st.write(sent)
+
+def findAuthorClusters(sentences, sentence_vectors, author, k, n_results):
+    kmeans = KMeans(n_clusters=k, n_init=50, algorithm='full')
+    kmeans.fit(sentence_vectors)
+    st.header(f'**Opinion clusters about {author}\'s books**')
+    for i in range(k):
+        centre = kmeans.cluster_centers_[i]
+        ips = np.inner(centre, sentence_vectors)
+        idx = pd.Series(ips).nlargest(n_results).index
+        clusteredSentences = list(sentences.iloc[idx])
+        '---'
+        st.write(f'**Cluster #{i+1}**')
+        for sent in clusteredSentences:
+                st.write(sent)
 
 ## UI and interactions
 
@@ -145,12 +167,12 @@ def Recommendations(sentence, reviews, books, n_results, n_clusters, n_cluster_r
             '**---**'
             book_title = display_results(idx,i, book_recommends, common_titles)
 
-            button = st.button(label='Load review clusters for this book?', key=idx)
+            button = st.button(label='Load opinion clusters for this book?', key=idx)
             if button:
                 with clusters:
                     try:
                         sentences, sentence_vectors = embedSentences(book_title, review_max_len)
-                        findClusters(sentences, sentence_vectors,book_title, k=n_clusters, n_results=n_results)
+                        findClusters(sentences, sentence_vectors,book_title, k=n_clusters, n_results=n_cluster_reviews)
                     except ValueError:
                         st.warning('Not enough reviews to compare. Try increasing the maximum review lenght!')
                         continue
@@ -175,7 +197,7 @@ def searchBookTitles(sentence, reviews, books, n_clusters, n_cluster_reviews, re
             '**Author:**', info.name.tolist()[0]
             '**Weighted Score**', str(round(info.weighted_score.tolist()[0], 2)), '/ 5'
 
-            showClusters = st.button(label='Show review clusters for this book?', key=idx)
+            showClusters = st.button(label='Show opinion clusters for this book?', key=idx)
             if showClusters:
                 with clusters:
                     sentences, sentence_vectors = embedSentences(bookTitle, review_max_len)
@@ -188,17 +210,28 @@ def searchAuthorNames(sentence, reviews, books, n_clusters, n_cluster_reviews, r
     author_name = books[books.name.str.contains(sentence, case=False)].name.tolist()
     with results:
         for idx, authorName in enumerate(author_name):
-            info = books[books.name == authorName]
-            '**---**'
-            '**Book title:**', info.title.tolist()[idx]
-            '**Author:**', info.name.tolist()[idx]
-            '**Weighted Score**', str(round(info.weighted_score.tolist()[idx], 2)), '/ 5'
+            try:
+                info = books[books.name == authorName]
+                '**---**'
+                '**Book title:**', info.title.tolist()[idx]
+                '**Author:**', info.name.tolist()[idx]
+                '**Weighted Score**', str(round(info.weighted_score.tolist()[idx], 2)), '/ 5'
 
-            showClusters = st.button(label='Show review clusters for this book?', key=idx)
+                showClusters = st.button(label='Show opinion clusters for this book?', key=idx)
+                showAuthorClusters = st.button(label='Show opinion clusters for this author?', key=idx+100)
+            except IndexError:
+                break
+
             if showClusters:
                 with clusters:
                     sentences, sentence_vectors = embedSentences(info.title.tolist()[idx], review_max_len)
                     findClusters(sentences, sentence_vectors, info.title.tolist()[idx], k=n_clusters, n_results=n_cluster_reviews)
+
+            if showAuthorClusters:
+                with clusters:
+                    sentences, sentence_vectors = embedAuthorSentences(info.name.tolist()[idx], review_max_len)
+                    findAuthorClusters(sentences, sentence_vectors, info.name.tolist()[idx], k=n_clusters, n_results=n_cluster_reviews)
+
             if links:
                 good_reads_link = goodreadsURL + '.'.join([info.book_id.astype(str).tolist()[idx], info.title.replace(r'\(.*$', '', regex = True).tolist()[0]])
                 good_reads_link
@@ -215,7 +248,7 @@ datapath = '/media/einhard/Seagate Expansion Drive/3380_data/data/Filtered books
 # Books and reviews file names and loading
 books_file = 'clean_filtered_books.csv'
 reviews_file = 'clean_filtered_reviews.csv'
-reviews_for_cluster = pd.read_csv('/media/einhard/Seagate Expansion Drive/3380_data/data/Processed/reviews_for_cluster.csv')
+reviews_for_cluster = pd.read_csv('/media/einhard/Seagate Expansion Drive/3380_data/data/Processed/reviews_for_cluster.csv').drop('Unnamed: 0', axis=1)
 
 # Base URL for goodreads
 goodreadsURL = 'https://www.goodreads.com/book/show/'
@@ -241,11 +274,11 @@ options = st.sidebar.beta_expander('Options')
 
 with options:
     links = st.checkbox('Show Goodreads links.')
-    n_clusters = st.slider('Select how many review clusters to generate for a book',
-                                2,10,value=8,step=1)
-    n_cluster_reviews = st.slider('Select how many reviews to show per cluster',
+    n_clusters = st.slider('Select how many opinion clusters to generate',
+                                2,10,value=3,step=1)
+    n_cluster_reviews = st.slider('Select how many reviews to show per opinion cluster',
                                 1,10,value=3,step=1)
-    review_max_len = st.slider('Select maximum review length for review clusters',
+    review_max_len = st.slider('Select maximum review length for opinion clusters',
                                 30, 350, value=80, step=10)
 
 
@@ -253,17 +286,11 @@ sentence = st.text_input('Input')
 results, clusters = st.beta_columns(2)
 
 
-if sentence == None:
+if not sentence:
     st.write('Welcome!')
 
 elif re.match(r'title: ', sentence):
-    '''
-    sentence = sentence.replace('title: ', '')
-    if re.match(r'QUOTES', sentence):
-        searchBookTitles -------> Use match instead of contains
-    else:
-        searchBookTitles()
-    '''
+
     sentence = sentence.replace('title: ', '')
     searchBookTitles(sentence,
                     reviews=reviews,
@@ -273,11 +300,7 @@ elif re.match(r'title: ', sentence):
                     review_max_len=review_max_len)
 
 elif re.match(r'author: ', sentence):
-    '''
-    with drop down menu:
-        select authors whose reviews you want to see
-        show review clusters
-    '''
+
     sentence = sentence.replace('author: ', '')
     searchAuthorNames(sentence,
                     reviews=reviews,
@@ -294,12 +317,12 @@ elif re.match(r'review: ', sentence):
 
 
 elif sentence:
-    n_results = st.sidebar.slider('Select how many book results to show',
+    n_books = st.sidebar.slider('Select how many book results to show',
                                 1, 25, value=10, step=1)
     Recommendations(sentence,
                     reviews=reviews,
                     books=books,
-                    n_results=n_results,
+                    n_results=n_books,
                     n_clusters=n_clusters,
                     n_cluster_reviews=n_cluster_reviews,
                     review_max_len=review_max_len)
