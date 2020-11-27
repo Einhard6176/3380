@@ -148,8 +148,12 @@ def Recommendations(sentence, reviews, books, n_results, n_clusters, n_cluster_r
             button = st.button(label='Load review clusters for this book?', key=idx)
             if button:
                 with clusters:
-                    sentences, sentence_vectors = embedSentences(book_title, review_max_len)
-                    findClusters(sentences, sentence_vectors,book_title, k=n_clusters, n_results=5)
+                    try:
+                        sentences, sentence_vectors = embedSentences(book_title, review_max_len)
+                        findClusters(sentences, sentence_vectors,book_title, k=n_clusters, n_results=n_results)
+                    except ValueError:
+                        st.warning('Not enough reviews to compare. Try increasing the maximum review lenght!')
+                        continue
             if links:
                 good_reads_link = goodreadsURL + book_recommends[book_recommends.book_id == (reviews[reviews.index == i].book_id.tolist() [0])].for_url.tolist()[0].replace(r'\s', '\\')
                 good_reads_link
@@ -233,14 +237,16 @@ st.sidebar.markdown(
     '''
 )
 
+options = st.sidebar.beta_expander('Options')
 
-links = st.sidebar.checkbox('Show Goodreads links.')
-n_clusters = st.sidebar.slider('Select how many review clusters to generate for a book',
+with options:
+    links = st.checkbox('Show Goodreads links.')
+    n_clusters = st.slider('Select how many review clusters to generate for a book',
                                 2,10,value=8,step=1)
-n_cluster_reviews = st.sidebar.slider('Select how many reviews to show per cluster',
+    n_cluster_reviews = st.slider('Select how many reviews to show per cluster',
                                 1,10,value=3,step=1)
-review_max_len = st.sidebar.slider('Select maximum review length for review clusters',
-                                30, 350, value=50, step=10)
+    review_max_len = st.slider('Select maximum review length for review clusters',
+                                30, 350, value=80, step=10)
 
 
 sentence = st.text_input('Input')
