@@ -56,12 +56,7 @@ def find_reviews(query,reviews, n_results=5):
     # Find sentences with highest inner products
     top_n_sentences = pd.Series(inner_product).nlargest(n_results+1)
     top_n_indices = top_n_sentences.index.tolist()
-    top_n_list = list(reviews.review_text.iloc[top_n_indices][1:])
 
-    #print(f'Input sentence: "{query}"\n')
-    #print(f'{n_results} most semantically similar reviews: \n\n')
-    #print(*top_n_list, sep='\n\n')
-    #print(top_n_indices)
     return top_n_indices
 
 
@@ -82,11 +77,7 @@ def find_description(query, books, n_results=10):
     # Find sentences with highest inner products
     top_n_sentences = pd.Series(inner_product).nlargest(n_results)
     top_n_indices = top_n_sentences.index.tolist()
-    top_n_list = list(books.description.iloc[top_n_indices][1:])
 
-    #print(f'Input sentence: "{query}"\n')
-    #print(f'{n_results} most semantically similar book descriptions: \n\n')
-    #print(*top_n_list, sep='\n\n')
     return top_n_indices
 
 @st.cache
@@ -178,7 +169,7 @@ def searchBookTitles(sentence, reviews, books, n_clusters, n_cluster_reviews, re
             '**---**'
             '**Book title:**', info.title.tolist()[0]
             '**Author:**', info.name.tolist()[0]
-            '**Weighted Score**', str(round(info.weighted_score.tolist()[0], 2)), '/5'
+            '**Weighted Score**', str(round(info.weighted_score.tolist()[0], 2)), '/ 5'
 
             showClusters = st.button(label='Show review clusters for this book?', key=idx)
             if showClusters:
@@ -195,17 +186,17 @@ def searchAuthorNames(sentence, reviews, books, n_clusters, n_cluster_reviews, r
         for idx, authorName in enumerate(author_name):
             info = books[books.name == authorName]
             '**---**'
-            '**Book title:**', info.title.tolist()[0]
-            '**Author:**', info.name.tolist()[0]
-            '**Weighted Score**', str(round(info.weighted_score.tolist()[0], 2)), '/5'
+            '**Book title:**', info.title.tolist()[idx]
+            '**Author:**', info.name.tolist()[idx]
+            '**Weighted Score**', str(round(info.weighted_score.tolist()[idx], 2)), '/ 5'
 
             showClusters = st.button(label='Show review clusters for this book?', key=idx)
             if showClusters:
                 with clusters:
-                    sentences, sentence_vectors = embedSentences(info.title.tolist()[0], review_max_len)
-                    findClusters(sentences, sentence_vectors, info.title.tolist()[0], k=n_clusters, n_results=n_cluster_reviews)
+                    sentences, sentence_vectors = embedSentences(info.title.tolist()[idx], review_max_len)
+                    findClusters(sentences, sentence_vectors, info.title.tolist()[idx], k=n_clusters, n_results=n_cluster_reviews)
             if links:
-                good_reads_link = goodreadsURL + '.'.join([info.book_id.astype(str).tolist()[0], info.title.replace(r'\(.*$', '', regex = True).tolist()[0]])
+                good_reads_link = goodreadsURL + '.'.join([info.book_id.astype(str).tolist()[idx], info.title.replace(r'\(.*$', '', regex = True).tolist()[0]])
                 good_reads_link
 
 
