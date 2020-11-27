@@ -253,6 +253,13 @@ sentence = st.text_input('Input')
 results, clusters = st.beta_columns(2)
 
 if re.match(r'title: ', sentence):
+    '''
+    sentence = sentence.replace('title: ', '')
+    if re.match(r'QUOTES', sentence):
+        searchBookTitles -------> Use match instead of contains
+    else:
+        searchBookTitles()
+    '''
     sentence = sentence.replace('title: ', '')
     searchBookTitles(sentence,
                     reviews=reviews,
@@ -261,6 +268,11 @@ if re.match(r'title: ', sentence):
                     n_cluster_reviews=n_cluster_reviews)
 
 elif re.match(r'author: ', sentence):
+    '''
+    with drop down menu:
+        select authors whose reviews you want to see
+        show review clusters
+    '''
     sentence = sentence.replace('author: ', '')
     searchAuthorNames(sentence,
                     reviews=reviews,
@@ -269,8 +281,13 @@ elif re.match(r'author: ', sentence):
                     n_cluster_reviews=n_cluster_reviews)
 
 
-elif sentence or re.match(r'review: ', sentence):
+elif re.match(r'review: ', sentence):
     sentence = sentence.replace('review: ', '')
+    '''searchReviews()'''
+    pass
+
+
+else:
     n_results = st.sidebar.slider('Select how many book results to show',
                                 1, 25, value=10, step=1)
     Recommendations(sentence,
