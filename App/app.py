@@ -113,7 +113,7 @@ def embedAuthorSentences(book_title, review_max_len):
 def findClusters(sentences, sentence_vectors, book_title, k, n_results):
     kmeans = KMeans(n_clusters=k, n_init=50, algorithm='full')
     kmeans.fit(sentence_vectors)
-    st.header(f'**Opinion clusters about {book_title}**')
+    st.header(f'Opinion clusters about *{book_title}*')
     for i in range(k):
         centre = kmeans.cluster_centers_[i]
         ips = np.inner(centre, sentence_vectors)
@@ -127,7 +127,7 @@ def findClusters(sentences, sentence_vectors, book_title, k, n_results):
 def findAuthorClusters(sentences, sentence_vectors, author, k, n_results):
     kmeans = KMeans(n_clusters=k, n_init=50, algorithm='full')
     kmeans.fit(sentence_vectors)
-    st.header(f'**Opinion clusters about {author}\'s books**')
+    st.header(f'Opinion clusters about {author}\'s books')
     for i in range(k):
         centre = kmeans.cluster_centers_[i]
         ips = np.inner(centre, sentence_vectors)
@@ -159,7 +159,7 @@ def display_results(idx, i, book_recommends, common_titles):
 
 def Recommendations(sentence, reviews, books, n_results, n_clusters, n_cluster_reviews, review_max_len):
     with results:
-        '''## Book recommendations based on your input sentence:'''
+        st.header('Book recommendations based on your input sentence:')
         ''' _(In no particular order)_'''
         top_n_indices, book_recommends = show_recommendations(sentence, reviews=reviews,    books=books, n_results=n_results-1)
         common_titles = []
@@ -282,12 +282,23 @@ with options:
                                 30, 350, value=80, step=10)
 
 
-sentence = st.text_input('Input')
+sentence = st.text_input('Try specifying `author:` or `title:` for more specific results')
 results, clusters = st.beta_columns(2)
 
 
 if not sentence:
-    st.write('Welcome!')
+    '''
+        ### How this works:
+        In the search bar above, you can type in any sentence that describes a book you'd like to read.
+
+        The machine learning algorithm will then look through a database of books and reviews to find the most appropriate recommendations for you based on how other people review the books they read (to be more specific, it will find the most semantically similar reviews).
+
+        If you want to explore further, you can generate thematically linked clusters for any book. On the sidebar, you can adjust how many opinion themes are generated for a particular book, as well as the number of reviews per theme and a couple of other options.
+
+        ### Where is the data from?
+
+        All the data for this project comes from the [UCSD Book Graph dataset](https://sites.google.com/eng.ucsd.edu/ucsdbookgraph/home?authuser=0).
+    '''
 
 elif re.match(r'title: ', sentence):
 
