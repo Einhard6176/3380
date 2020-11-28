@@ -205,8 +205,8 @@ def showInfo(iterator, n_clusters, n_results,n_books, review_max_len):
                     except ValueError:
                         st.warning(f"It looks like this book doesn't have enough reviews to generate {n_clusters} distinct themes. Try decreasing how many themes you look for!")
             if goodreadsLink:
-                #### Create individual Goodreads links and show them ####
-                pass
+                good_reads_link = goodreadsURL + info.book_id.astype(str).tolist()[0]
+                st.write(f'*Goodreads Link: {good_reads_link}*')
 #######################################################################################
                             # Load variables and data
 #######################################################################################
@@ -248,7 +248,7 @@ with options:
                                 2,10,value=3,step=1)
     n_results = st.slider('Select how many reviews to show per theme',
                                 1,10,value=3,step=1)
-    n_books = st.sidebar.slider('Select how many book results to show',
+    n_books = st.slider('Select how many book results to show',
                                 1, 25, value=10, step=1)
     review_max_len = st.slider('Select maximum review length each theme group',
                                 50, 350, value=80, step=10)
@@ -271,7 +271,7 @@ if not input_text:
 
         ### Where is the data from?
 
-        All the data for this project comes from the [UCSD Book Graph dataset](https://sites.google.com/eng.ucsd.edu/ucsdbookgraph/home?authuser=0).
+        All data for this project comes from the [UCSD Book Graph dataset](https://sites.google.com/eng.ucsd.edu/ucsdbookgraph/home?authuser=0).
     '''
 
 # Title specific book searches
@@ -298,3 +298,7 @@ elif re.match(r'author: ', input_text):
 # Description specific searches
 elif re.match(r'description: ', input_text):
     input_text = input_text.replace('description: ', '')
+
+if psutil.virtual_memory()[2] > 60:
+    st.write('Clearing cache to make sure things continue to run smoothly. Hang on!')
+    caching.clear_cache()
