@@ -149,8 +149,7 @@ def searchBookTitles(input_text, reviews, books, n_clusters, n_cluster_reviews):
 
 #################### App UI and Interactions ####################
 
-#book_title = books[books.title.str.contains(sentence, case=False)].title.tolist()
-# author
+
 def showInfo(iterator, n_clusters, n_results,n_books, review_max_len):
     with results:
         for idx, i in enumerate(iterator[:n_books]):
@@ -185,6 +184,7 @@ def showInfo(iterator, n_clusters, n_results,n_books, review_max_len):
                                     searchTitle=True)
                     except ValueError:
                         st.warning(f"It looks like this book doesn't have enough reviews to generate {n_clusters} distinct themes. Try decreasing how many themes you look for!")
+                        continue
             if showAuthorClusters:
                 with clusters:
                     try:
@@ -203,7 +203,8 @@ def showInfo(iterator, n_clusters, n_results,n_books, review_max_len):
                                     model=model,
                                     searchTitle=False)
                     except ValueError:
-                        st.warning(f"It looks like this book doesn't have enough reviews to generate {n_clusters} distinct themes. Try decreasing how many themes you look for!")
+                        st.warning(f"It looks like this author's books don't have enough reviews to generate {n_clusters} distinct themes. Try decreasing how many themes you look for!")
+                        continue
             if goodreadsLink:
                 good_reads_link = goodreadsURL + info.book_id.astype(str).tolist()[0]
                 st.write(f'*Goodreads Link: {good_reads_link}*')
@@ -298,6 +299,9 @@ elif re.match(r'author: ', input_text):
 # Description specific searches
 elif re.match(r'description: ', input_text):
     input_text = input_text.replace('description: ', '')
+
+
+
 
 if psutil.virtual_memory()[2] > 60:
     st.write('Clearing cache to make sure things continue to run smoothly. Hang on!')
