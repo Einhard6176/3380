@@ -60,7 +60,7 @@ def loadEmbeddings():
 
 #################### Basic Clustering Functionality ####################
 
-@st.cache
+@st.cache(allow_output_mutation=True)
 def embedInputs(books_df, review_df, search_param, review_max_len, searchTitle=True):
     '''
     Converts input reviews into USE arrays. Returns vectorized reviews for the book that was
@@ -75,13 +75,15 @@ def embedInputs(books_df, review_df, search_param, review_max_len, searchTitle=T
     if searchTitle:
         #Finds book_id from title of book
         input_book_id = books_df[books_df.title.isin([search_param])].book_id.tolist()
+        author_name = 'VariousAuthors/'
     else:
         # Finds book_id from author name
         input_book_id = books_df[books_df.name.isin([search_param])].book_id.tolist()
+        author_name = books_df[books_df.name.isin([search_param])].name.iloc[0]
 
     # Finds reviews for specified book
     # input_sentences = review_df[review_df.book_id.isin(input_book_id)].review_text
-    input_sentences = cleanAndTokenize(review_df[review_df.book_id.isin(input_book_id)], tokenizedData).review_text
+    input_sentences = cleanAndTokenize(review_df[review_df.book_id.isin(input_book_id)], tokenizedData, searchTitle=searchTitle, author=author_name).review_text
 
     # Filters review length
     input_sentences = input_sentences[input_sentences.str.len() <= review_max_len]
@@ -196,7 +198,7 @@ def clean_reviews(df):
 
     return reviews_df
 
-@st.cache
+@st.cache(allow_output_mutation=True)
 def make_sentences(reviews_df):
     '''
     Copyright (c) 2020 Willie Costello
@@ -233,17 +235,28 @@ def make_sentences(reviews_df):
 
     return sentences_df
 
-@st.cache
-def cleanAndTokenize(df, filepath):
-    if Path(filepath + df.book_id.iloc[1].astype(str) + '.csv').is_file():
-        sentences_df = pd.read_csv(filepath + df.book_id.iloc[1].astype(str) + '.csv').drop('Unnamed: 0', axis=1)
-    else:
-        reviews_df = clean_reviews(df)
-        sentences_df =  make_sentences(reviews_df)
-        sentences_df.to_csv(filepath + df.book_id.iloc[1].astype(str) + '.csv')
-    sentences_df.book_id = sentences_df.book_id.astype(int)
+@st.cache(allow_output_mutation=True)
+def cleanAndTokenize(df, filepath, searchTitle, author):
+    if searchTitle:
+        if Path(filepath + 'book_id/' + df.book_id.iloc[1].astype(str) + '.csv').is_file():
+            sentences_df = pd.read_csv(filepath + 'book_id/' + df.book_id.iloc[1].astype(str) + '.csv').drop('Unnamed: 0', axis=1)
+        else:
+            reviews_df = clean_reviews(df)
+            sentences_df =  make_sentences(reviews_df)
+            sentences_df.to_csv(filepath + 'book_id/' + df.book_id.iloc[1].astype(str) + '.csv')
+        sentences_df.book_id = sentences_df.book_id.astype(int)
+        return sentences_df
 
-    return sentences_df
+    else:
+        if Path(filepath + 'author/' + author + '.csv').is_file():
+            sentences_df = pd.read_csv(filepath + 'author/' + author + '.csv').drop('Unnamed: 0', axis=1)
+        else:
+            reviews_df = clean_reviews(df)
+            sentences_df =  make_sentences(reviews_df)
+            sentences_df.to_csv(filepath + 'author/' + author + '.csv')
+        sentences_df.book_id = sentences_df.book_id.astype(int)
+
+        return sentences_df
 
 
 
