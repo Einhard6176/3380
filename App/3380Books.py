@@ -95,7 +95,7 @@ def embedInputs(books_df, review_df, search_param, review_max_len, searchTitle=T
     return input_sentences, input_vectors
 
 # Pass "sentence_array" as input_vectors to compare with user input???????
-@st.cache
+@st.cache(allow_output_mutation=True)
 def getClusters(input_vectors, n_clusters):
     '''
     Creates KMeans instance and fits model.
@@ -146,17 +146,13 @@ def showClusters(input_sentences, input_vectors, authorTitle, n_clusters, n_resu
 
 #################### Tokenizing and saving data for embedding ####################
 
-@st.cache
+@st.cache(allow_output_mutation=True)
 def clean_reviews(df):
-
-    # Read in CSV as dataframe
-    length_orig = len(df)
-
+    '''
+    Copyright (c) 2020 Willie Costello
+    '''
     # Drop duplicates
     df.drop_duplicates(inplace=True)
-    num_dups = length_orig - len(df)
-
-    print(f'Read in {length_orig} reviews, dropping {num_dups} duplicates\n')
 
     # Define spoiler marker & remove from all reviews
     spoiler_str_ucsd = '\*\* spoiler alert \*\* \n'
@@ -170,8 +166,6 @@ def clean_reviews(df):
 
     # Initialize dataframe to store English-language reviews
     reviews_df = pd.DataFrame()
-    # Initialize counter for dropped reviews
-    drop_ctr = 0
 
     # Loop through each row in dataframe
     for i in range(len(df)):
@@ -180,22 +174,11 @@ def clean_reviews(df):
         review = df.iloc[i]['review_text']
 
         # Check if review is English
-        try:
-            if detect(review) == 'en':
-                # If so, add row to English-language dataframe
-                reviews_df = reviews_df.append(df.iloc[i, :])
-            else:
-                # If not, add 1 to dropped review counter
-                drop_ctr += 1
-        # If check fails, add 1 to dropped review counter
-        except:
-            drop_ctr += 1
+        if detect(review) == 'en':
+            # If so, add row to English-language dataframe
+            reviews_df = reviews_df.append(df.iloc[i, :])
 
     reviews_df.book_id = reviews_df.book_id.astype(int)
-
-    print(f'Dropped {drop_ctr} non-English reviews. '
-          f'{len(reviews_df)} reviews remain.\n')
-
     return reviews_df
 
 @st.cache(allow_output_mutation=True)
@@ -382,7 +365,7 @@ with options:
 
 
 # Asking for user input
-input_text = st.text_input('Try specifying `author:` or `title:` for more specific results')
+input_text = st.text_input('Try specifying `author:` if you want more specific results')
 
 # Creating columns for book results on the left, review clusters on the right
 results, clusters = st.beta_columns(2)
@@ -391,17 +374,18 @@ results, clusters = st.beta_columns(2)
 if not input_text:
     '''
     ### How this works:
-    In the search bar above, you can type in any sentence that describes a book you'd like to read.
 
-    The machine learning algorithm will then look through a database of books and reviews to find the most appropriate recommendations for you based on how other people review the books they read (to be more specific, it will find the most semantically similar reviews).
+    In the search bar above, type the title of a book you're interested in. If you're looking for a particular author, use the `author: ` prefix. You can type partial names or titles (i.e. you can search for "author: Adrian" and the app will return all authors that have "Adrian" in their name).
 
-    If you want to explore further, you can generate thematically linked clusters for any book. On the sidebar, you can adjust how many opinion themes are generated for a particular book, as well as the number of reviews per theme and a couple of other options.
+    Once you have a list of books, you can load thematically linked review clusters that describe that particular book. You can also load thematically linked review clusters for an author - in this case, the machine learning algorithm will look through *all* reviews associated with that author, instead of just a particular book.
+
+    On the sidebar, you can adjust how many opinion themes are generated for a particular search, as well as the number of reviews per theme, and a couple of other options.
     '''
     about = st.beta_expander('About')
     with about:
         '''
         ## About
-        
+
         3380 Books was created as part of my final data science project at [Lighthouse Labs, Vancouver](https://www.lighthouselabs.ca/).
 
         The inspiration for the app came from Goodread's yearly reading [challenge](https://www.goodreads.com/challenges/show/11621-2020-reading-challenge). The name, 3380, comes from a simple calculation: if you were born in 1993, like I was, your [average global life expectancy at birth](https://data.worldbank.org/indicator/SP.DYN.LE00.IN) would be around 65 years. If you committed to reading one book every single week from the day you were born till the day you die, you'd read 52 books per year, or about 3,380 books in your lifetime.
@@ -418,6 +402,8 @@ if not input_text:
         I'd like to start by thanking Menging Wan, Julian McAuley, Rishabh Misra and Ndapa Nakashole for creating and publishing the [UCSD Book Graph](https://sites.google.com/eng.ucsd.edu/ucsdbookgraph/home)
         database. All the book data for this app comes from their work. If you're interested, check out their papers: [*Item Recommendation on Monotonic Behaviour Chains*](https://github.com/MengtingWan/mengtingwan.github.io/raw/master/paperrecsys18_mwan.pdf), and [*Fine-Grained Spoiler Detection from Large-Scale Review Corpora*](https://www.aclweb.org/anthology/P19-1248/).
 
+        Additionally, I want to thank [Willie Costello](https://williecostello.com/), whose BetterReads algorithm laid the foundation for my work.
+
         I would also like to thank all the staff at Lighthouse Labs for helping us through this journey.
 
         Most of all, I'd like to thank my classmates, without whom I surely would not have made it this far. In particular, for their immense support and unlimited camaraderie, I'd like to acknowledge:
@@ -428,17 +414,6 @@ if not input_text:
         * [Henri Vandersleyen](https://www.linkedin.com/in/henri-vandersleyen-a25a8312b/)
         '''
 
-# Title specific book searches
-elif re.match(r'title: ', input_text):
-    input_text = input_text.replace('title: ', '')
-    book_title = books[books.title.str.contains(input_text, case=False)].title.tolist()
-    showInfo(iterator=book_title,
-            n_clusters=n_clusters,
-            n_results=n_results,
-            n_books=n_books,
-            review_max_len=review_max_len)
-
-
 # Author specific searches
 elif re.match(r'author: ', input_text):
     input_text = input_text.replace('author: ', '')
@@ -448,6 +423,19 @@ elif re.match(r'author: ', input_text):
             n_results=n_results,
             n_books=n_books,
             review_max_len=review_max_len)
+
+# Title book searches
+elif input_text:
+    input_text = input_text.replace('title: ', '')
+    book_title = books[books.title.str.contains(input_text, case=False)].title.tolist()
+    showInfo(iterator=book_title,
+            n_clusters=n_clusters,
+            n_results=n_results,
+            n_books=n_books,
+            review_max_len=review_max_len)
+
+
+
 
 # Description specific searches
 elif re.match(r'description: ', input_text):
