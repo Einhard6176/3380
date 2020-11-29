@@ -140,9 +140,14 @@ def showClusters(input_sentences, input_vectors, authorTitle, n_clusters, n_resu
 
 
 
-#################### Specific Clustering Functionality ####################
+#################### Searching based on description or review ####################
 
-# Search by book title (used with the prefix 'title:' in input)
+def findSimilarity(input_text, df, searchDescription):
+    if searchDescription:
+        inner_product = np.inner(df.description,)
+
+
+
 def searchBookTitles(input_text, reviews, books, n_clusters, n_cluster_reviews):
     pass
 
@@ -276,8 +281,7 @@ with about:
 
     I'd like to start by thanking Menging Wan, Julian McAuley, Rishabh Misra and Ndapa Nakashole for creating and publishing the [UCSD Book Graph](https://sites.google.com/eng.ucsd.edu/ucsdbookgraph/home)
     database. All the book data for this app comes from their work. If you're interested, check out their papers: ["Item Recommendation on Monotonic Behaviour Chains"](https://github.com/MengtingWan/mengtingwan.github.io/raw/master/paper/recsys18_mwan.pdf), 
-    and [Fine-Grained Spoiler Detection from Large-Scale Review Corpora"](https://www.aclweb.org/anthology/P19-1248/). I'd also like to thank [Willie Costello](https://github.com/williecostello), whose
-    BetterReads algorithm works as the foundation for 3380 Books.
+    and [Fine-Grained Spoiler Detection from Large-Scale Review Corpora"](https://www.aclweb.org/anthology/P19-1248/).
 
     I would also like to thank all the staff at Lighthouse Labs for helping us through this journey.
 
@@ -286,7 +290,7 @@ with about:
     * [Olivia Kim](https://github.com/yjik122)
     * [Elliot Lupini](https://www.linkedin.com/in/elliot-lupini-8824681b1/)
     * [Lane Clark](http://lclark.ca/)
-    *[Henri Vandersleyen](https://www.linkedin.com/in/henri-vandersleyen-a25a8312b/)
+    * [Henri Vandersleyen](https://www.linkedin.com/in/henri-vandersleyen-a25a8312b/)
 
     '''
 
