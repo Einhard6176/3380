@@ -3,6 +3,9 @@ import pandas as pd
 
 # To process embeddings
 import tensorflow_hub as hub
+from langdetect import detect
+from pathlib import Path
+from nltk.tokenize import sent_tokenize
 
 # To create sentence clusters
 from sklearn.cluster import KMeans
@@ -77,7 +80,8 @@ def embedInputs(books_df, review_df, search_param, review_max_len, searchTitle=T
         input_book_id = books_df[books_df.name.isin([search_param])].book_id.tolist()
 
     # Finds reviews for specified book
-    input_sentences = review_df[review_df.book_id.isin(input_book_id)].review_text
+    # input_sentences = review_df[review_df.book_id.isin(input_book_id)].review_text
+    input_sentences = cleanAndTokenize(review_df[review_df.book_id.isin(input_book_id)], tokenizedData).review_text
 
     # Filters review length
     input_sentences = input_sentences[input_sentences.str.len() <= review_max_len]
@@ -138,15 +142,115 @@ def showClusters(input_sentences, input_vectors, authorTitle, n_clusters, n_resu
         for sentence in clusteredInputs:
             st.write(sentence)
 
+#################### Tokenizing and saving data for embedding ####################
+
+@st.cache
+def clean_reviews(df):
+
+    # Read in CSV as dataframe
+    length_orig = len(df)
+
+    # Drop duplicates
+    df.drop_duplicates(inplace=True)
+    num_dups = length_orig - len(df)
+
+    print(f'Read in {length_orig} reviews, dropping {num_dups} duplicates\n')
+
+    # Define spoiler marker & remove from all reviews
+    spoiler_str_ucsd = '\*\* spoiler alert \*\* \n'
+    df['review_text'] = df['review_text'].str.replace(spoiler_str_ucsd, '')
+
+    # Replace all new line characters
+    df['review_text'] = df['review_text'].str.replace('\n', ' ')
+
+    # Append space to all sentence end characters
+    df['review_text'] = df['review_text'].str.replace('.', '. ').replace('!', '! ').replace('?', '? ')
+
+    # Initialize dataframe to store English-language reviews
+    reviews_df = pd.DataFrame()
+    # Initialize counter for dropped reviews
+    drop_ctr = 0
+
+    # Loop through each row in dataframe
+    for i in range(len(df)):
+
+        # Save review to variable
+        review = df.iloc[i]['review_text']
+
+        # Check if review is English
+        try:
+            if detect(review) == 'en':
+                # If so, add row to English-language dataframe
+                reviews_df = reviews_df.append(df.iloc[i, :])
+            else:
+                # If not, add 1 to dropped review counter
+                drop_ctr += 1
+        # If check fails, add 1 to dropped review counter
+        except:
+            drop_ctr += 1
+
+    reviews_df.book_id = reviews_df.book_id.astype(int)
+
+    print(f'Dropped {drop_ctr} non-English reviews. '
+          f'{len(reviews_df)} reviews remain.\n')
+
+    return reviews_df
+
+@st.cache
+def make_sentences(reviews_df):
+    '''
+    Copyright (c) 2020 Willie Costello
+    '''
+    # Initialize dataframe to store review sentences, and counter
+    sentences_df = pd.DataFrame()
+    ctr = 0
+
+    print(f'Starting tokenization')
+
+    # Loop through each review
+    for i in range(len(reviews_df)):
+
+        # Save row and review to variables
+        row = reviews_df.iloc[i]
+        review = row.loc['review_text']
+
+        # Tokenize review into sentences
+        sentences = sent_tokenize(review)
+
+        # Loop through each sentence in list of tokenized sentences
+        for sentence in sentences:
+            # Add row for sentence to sentences dataframe
+            new_row = row.copy()
+            new_row.at['review_text'] = sentence
+            sentences_df = sentences_df.append(new_row, ignore_index=True)
+
+        ctr += 1
+        if (ctr % 500 == 0):
+            print(f'{ctr} reviews tokenized')
+
+    sentences_df = sentences_df[(sentences_df.review_text.str.len() > 20) & (sentences_df.review_text.str.len() < 350)]
+    print(f'Tokenization complete: {len(sentences_df)} sentences tokenized\n')
+
+    return sentences_df
+
+@st.cache
+def cleanAndTokenize(df, filepath):
+    if Path(filepath + df.book_id.iloc[1].astype(str) + '.csv').is_file():
+        sentences_df = pd.read_csv(filepath + df.book_id.iloc[1].astype(str) + '.csv').drop('Unnamed: 0', axis=1)
+    else:
+        reviews_df = clean_reviews(df)
+        sentences_df =  make_sentences(reviews_df)
+        sentences_df.to_csv(filepath + df.book_id.iloc[1].astype(str) + '.csv')
+    sentences_df.book_id = sentences_df.book_id.astype(int)
+
+    return sentences_df
+
 
 
 #################### Searching based on description or review ####################
 
 def findSimilarity(input_text, df, searchDescription):
-    if searchDescription:
-        inner_product = np.inner(df.description,)
-
-
+    pass
 
 def searchBookTitles(input_text, reviews, books, n_clusters, n_cluster_reviews):
     pass
@@ -155,7 +259,7 @@ def searchBookTitles(input_text, reviews, books, n_clusters, n_cluster_reviews):
 #################### App UI and Interactions ####################
 
 
-def showInfo(iterator, n_clusters, n_results,n_books, review_max_len):
+def showInfo(iterator, n_clusters, n_results,n_books, review_max_len=0):
     with results:
         for idx, i in enumerate(iterator[:n_books]):
             try:
@@ -219,6 +323,9 @@ def showInfo(iterator, n_clusters, n_results,n_books, review_max_len):
 
 # Paths to books and reviews DataFrames
 datapath = '/media/einhard/Seagate Expansion Drive/3380_data/data/Filtered books/'
+
+# Stores tokenized reviews so they only need to be processed the first time that particular book is called
+tokenizedData = '/media/einhard/Seagate Expansion Drive/3380_data/data/app_data/'
 books_file = 'clean_filtered_books.csv'
 reviews_file = 'clean_filtered_reviews.csv'
 reviewsAll_file = 'reviews_for_cluster.csv'
@@ -257,7 +364,7 @@ with options:
     n_books = st.slider('Select how many book results to show',
                                 1, 25, value=10, step=1)
     review_max_len = st.slider('Select maximum review length for each theme group',
-                                50, 350, value=80, step=10)
+                                 50, 350, value=350, step=10)
 
 about = st.sidebar.beta_expander('About')
 with about:
@@ -273,14 +380,14 @@ with about:
 
     This means that with 3380 books to read in a lifetime, we will still only be able to read less than 0.01% of extant books (and every year more and more books are being published). It is therefore
     increasingly important to find a way to filter information; but, crucially, to not rely *only* on other users - in the way that Netflix suggests TV shows, for example. Rather, it
-    behooves us to take an active part in choosing the content we want to consume. 
-    
+    behooves us to take an active part in choosing the content we want to consume.
+
     And thus this idea for a extractive review summarizer that helps you spend less time reading reviews to get at the gist of a book.
 
     ## Acknowledgements
 
     I'd like to start by thanking Menging Wan, Julian McAuley, Rishabh Misra and Ndapa Nakashole for creating and publishing the [UCSD Book Graph](https://sites.google.com/eng.ucsd.edu/ucsdbookgraph/home)
-    database. All the book data for this app comes from their work. If you're interested, check out their papers: ["Item Recommendation on Monotonic Behaviour Chains"](https://github.com/MengtingWan/mengtingwan.github.io/raw/master/paper/recsys18_mwan.pdf), 
+    database. All the book data for this app comes from their work. If you're interested, check out their papers: ["Item Recommendation on Monotonic Behaviour Chains"](https://github.com/MengtingWan/mengtingwan.github.io/raw/master/paper/recsys18_mwan.pdf),
     and [Fine-Grained Spoiler Detection from Large-Scale Review Corpora"](https://www.aclweb.org/anthology/P19-1248/).
 
     I would also like to thank all the staff at Lighthouse Labs for helping us through this journey.
