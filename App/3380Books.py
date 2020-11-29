@@ -254,6 +254,42 @@ with options:
     review_max_len = st.slider('Select maximum review length for each theme group',
                                 50, 350, value=80, step=10)
 
+about = st.sidebar.beta_expander('About')
+with about:
+    '''
+    3380 Books was created as part of my final data science project at Lighthouse Labs, Vancouver.
+
+    The inspiration for the app came from Goodread's yearly reading [challenge](https://www.goodreads.com/challenges/show/11621-2020-reading-challenge). The name, 3380, comes from
+    a simple calculation: if you were born in 1993, like I was, your [average global life expectancy at birth](https://data.worldbank.org/indicator/SP.DYN.LE00.IN) would be around 65 years.
+    If you committed to reading one book every single week from the day you were born till the day you die, you'd read 52 books per year, or about 3,380 books in your lifetime.
+
+    To put that in perspective,  there were [45,860 working authors](https://www.statista.com/topics/1177/book-market/) in 2019 and over 1.5 million self-published books
+    in 2018 *in the US alone*. As of late 2019, the Google Books project had scanned over [40 million books in over 400 languages](https://www.blog.google/products/search/15-years-google-books/).
+
+    This means that with 3380 books to read in a lifetime, we will still only be able to read less than 0.01% of extant books (and every year more and more books are being published). It is therefore
+    increasingly important to find a way to filter information; but, crucially, to not rely *only* on other users - in the way that Netflix suggests TV shows, for example. Rather, it
+    behooves us to take an active part in choosing the content we want to consume. 
+    
+    And thus this idea for a extractive review summarizer that helps you spend less time reading reviews to get at the gist of a book.
+
+    ## Acknowledgements
+
+    I'd like to start by thanking Menging Wan, Julian McAuley, Rishabh Misra and Ndapa Nakashole for creating and publishing the [UCSD Book Graph](https://sites.google.com/eng.ucsd.edu/ucsdbookgraph/home)
+    database. All the book data for this app comes from their work. If you're interested, check out their papers: ["Item Recommendation on Monotonic Behaviour Chains"](https://github.com/MengtingWan/mengtingwan.github.io/raw/master/paper/recsys18_mwan.pdf), 
+    and [Fine-Grained Spoiler Detection from Large-Scale Review Corpora"](https://www.aclweb.org/anthology/P19-1248/). I'd also like to thank [Willie Costello](https://github.com/williecostello), whose
+    BetterReads algorithm works as the foundation for 3380 Books.
+
+    I would also like to thank all the staff at Lighthouse Labs for helping us through this journey.
+
+    Most of all, I'd like to thank my classmates, without whom I surely would not have made it this far. In particular, for their immense support and unlimited comraderie, I'd like to acknowledge:
+    * [Atlas Kazemian](https://www.linkedin.com/in/atlas-kazemian-874b11100/)
+    * [Olivia Kim](https://github.com/yjik122)
+    * [Elliot Lupini](https://www.linkedin.com/in/elliot-lupini-8824681b1/)
+    * [Lane Clark](http://lclark.ca/)
+    *[Henri Vandersleyen](https://www.linkedin.com/in/henri-vandersleyen-a25a8312b/)
+
+    '''
+
 # Asking for user input
 input_text = st.text_input('Try specifying `author:` or `title:` for more specific results')
 
