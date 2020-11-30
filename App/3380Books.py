@@ -430,7 +430,8 @@ with helpFAQ:
 
 st.sidebar.markdown('''
 ---
-*Created by [Adnan Valdes](https://www.linkedin.com/in/adnanvaldes/)*
+*Created by [Adnan Valdes](https://www.linkedin.com/in/adnanvaldes/)*\n
+*Find the project on [GitHub](https://github.com/Einhard6176/3380)*
 '''
 )
 
