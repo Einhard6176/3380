@@ -261,7 +261,7 @@ def createSimilarities(books_df):
     mapping = pd.Series(books.index,index = books['title'])
     return cosine_similarities, mapping
 
-
+@st.cache(allow_output_mutation=True)
 def bookRecommendation(book_title, mapping, cosine_similarities, n_books):
     book_index = mapping[book_title]
     similarity_score = list(enumerate(cosine_similarities[book_index]))
@@ -271,7 +271,7 @@ def bookRecommendation(book_title, mapping, cosine_similarities, n_books):
     return (books['title'].iloc[book_indices])
 
 
-# Experimental
+@st.cache(allow_output_mutation=True)
 def findSemanticallySimilarReviews(query,reviews, books, sentence_array,  n_books):
     # Create vector from query and compare with global embedding
     sentence = [query]
@@ -399,7 +399,7 @@ st.sidebar.markdown(
 )
 
 # Creating options dropdown menu in sidebar
-options = st.sidebar.beta_expander('Options')
+options = st.sidebar.beta_expander('Options', expanded=True )
 with options:
     goodreadsLink = st.checkbox('Show Goodreads links.')
     n_books = st.slider('Select how many book results to show',
@@ -434,17 +434,6 @@ st.sidebar.markdown('''
 '''
 )
 
-commands = st.beta_expander('Useful commands')
-with commands:
-    '''
-    You can type in a title or partial title and the search algorithm will return some book recommendations. \n
-
-    You can also try any of the following prefixes to fine tune your search:\n
-    `author: `      - will search database for specific authors (`author: Frank Herbert`)\n
-    `title: `       - will search database for specific titles (`title: Dune`)\n
-    `description: ` - will search database for books that match description (`description: Set on the desert planet Arrakis`)\n
-    '''
-
 # Asking for user input
 input_text = st.text_input('Try specifying `author:` or `title: ` if you want more specific results')
 
@@ -455,11 +444,19 @@ results, clusters = st.beta_columns(2)
 # Welcome message
 if not input_text:
     '''
+    ### Some useful commands:
+
+    You can type in a title or partial title and the search algorithm will return some book recommendations. \n
+
+    You can also try any of the following prefixes to fine tune your search:\n
+    `author: `      - will search database for specific authors (`author: Frank Herbert`)\n
+    `title: `       - will search database for specific titles (`title: Dune`)\n
+    `description: ` - will search database for books that match description (`description: Set on the desert planet Arrakis`)\n
     ### How this works:
 
-    In the search bar above, type the title of a book you're interested in. If you're looking for a particular author, use the `author: ` prefix. You can type partial names or titles (i.e. you can search for "author: Adrian" and the app will return all authors that have "Adrian" in their name).
+    In the search bar above, type the title of a book you're interested in. The algorithm will then come back with some book recommendations based on the description of the book you entered. If you're looking for a particular author, use the `author: ` prefix, or the `title: ` prefix if you want a particular book. You can type partial names or titles (i.e. you can search for "author: Adrian" and the app will return all authors that have "Adrian" in their name).
 
-    Once you have a list of books, you can load thematically linked review clusters that describe that particular book. You can also load thematically linked review clusters for an author - in this case, the machine learning algorithm will look through *all* reviews associated with that author, instead of just a particular book.
+    Once you have a list of books, you can load review clusters that describe that particular book. You can also load review clusters for an author - in this case, the machine learning algorithm will look through *all* reviews associated with that author, instead of just a particular book.
 
     On the sidebar, you can adjust how many opinion clusters are generated for a particular search, as well as the number of reviews per clusters, and a couple of other options.
     '''
