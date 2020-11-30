@@ -140,9 +140,10 @@ def showClusters(input_sentences, input_vectors, authorTitle, n_clusters, n_resu
 
         # Prints reviews that are closest to centroid
         st.markdown('---')
-        st.write(f'**Cluster #{i+1}**')
-        for sentence in clusteredInputs:
-            st.write(sentence)
+        collapseCluster = st.beta_expander(f'Cluster #{i+1}', expanded=True)
+        with collapseCluster:
+            for sentence in clusteredInputs:
+                st.write(sentence)
 
 #################### Tokenizing and saving data for embedding ####################
 
@@ -213,7 +214,7 @@ def make_sentences(reviews_df):
         if (ctr % 500 == 0):
             print(f'{ctr} reviews tokenized')
 
-    sentences_df = sentences_df[(sentences_df.review_text.str.len() > 20) & (sentences_df.review_text.str.len() < 350)]
+    sentences_df = sentences_df[(sentences_df.review_text.str.len() >= 20) & (sentences_df.review_text.str.len() <= 350)]
     print(f'Tokenization complete: {len(sentences_df)} sentences tokenized\n')
 
     return sentences_df
@@ -255,7 +256,7 @@ def searchBookTitles(input_text, reviews, books, n_clusters, n_cluster_reviews):
 #################### App UI and Interactions ####################
 
 
-def showInfo(iterator, n_clusters, n_results,n_books, review_max_len=0):
+def showInfo(iterator, n_clusters, n_results,n_books, review_max_len=350):
     with results:
         for idx, i in enumerate(iterator[:n_books]):
             try:
@@ -265,10 +266,13 @@ def showInfo(iterator, n_clusters, n_results,n_books, review_max_len=0):
                 '**Author:**', info.name.tolist()[0]
                 '**Weighted Score**', str(round(info.weighted_score.tolist()[0], 2)), '/ 5'
 
+                showDescription = st.beta_expander(label='Show description?')
                 showReviewClusters = st.button(label='Show opinion clusters for this book?', key=idx)
                 showAuthorClusters = st.button(label='Show opinion clusters for this author?', key=idx+100)
             except IndexError:
                 break
+            with showDescription:
+                st.write(info.description.tolist()[0])
 
             if showReviewClusters:
                 with clusters:
@@ -313,6 +317,8 @@ def showInfo(iterator, n_clusters, n_results,n_books, review_max_len=0):
             if goodreadsLink:
                 good_reads_link = goodreadsURL + info.book_id.astype(str).tolist()[0]
                 st.write(f'*Goodreads Link: {good_reads_link}*')
+
+                
 #######################################################################################
                             # Load variables and data
 #######################################################################################
@@ -365,7 +371,7 @@ with options:
 
 
 # Asking for user input
-input_text = st.text_input('Try specifying `author:` if you want more specific results')
+input_text = st.text_input('Try specifying `author:` or `title: ` if you want more specific results')
 
 # Creating columns for book results on the left, review clusters on the right
 results, clusters = st.beta_columns(2)
@@ -424,8 +430,11 @@ elif re.match(r'author: ', input_text):
             n_books=n_books,
             review_max_len=review_max_len)
 
+elif re.match(r'(author: ) (\w+) (title: ) (\w+)', input_text):
+    pass
+
 # Title book searches
-elif input_text:
+elif input_text or re.match(r'title: ', input_text):
     input_text = input_text.replace('title: ', '')
     book_title = books[books.title.str.contains(input_text, case=False)].title.tolist()
     showInfo(iterator=book_title,
@@ -440,6 +449,7 @@ elif input_text:
 # Description specific searches
 elif re.match(r'description: ', input_text):
     input_text = input_text.replace('description: ', '')
+
 
 
 
