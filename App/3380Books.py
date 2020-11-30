@@ -133,9 +133,9 @@ def showClusters(input_sentences, input_vectors, authorTitle, n_clusters, n_resu
     '''
     if searchTitle:
         # Displays which book's reviews are being clustered
-        st.header(f'Thematic review clusters about *{authorTitle}*')
+        st.header(f'Opinion clusters about *{authorTitle}*')
     else:
-        st.header(f'Thematic review clusters about {authorTitle}\'s books')
+        st.header(f'Opinion clusters about {authorTitle}\'s books')
 
     # Iterates through centroids to and computes inner products to find nlargest
     for i in range(n_clusters):
@@ -146,7 +146,7 @@ def showClusters(input_sentences, input_vectors, authorTitle, n_clusters, n_resu
 
         # Writes reviews that are closest to centroid
         st.markdown('---')
-        collapseCluster = st.beta_expander(f'Theme #{i+1}', expanded=True)
+        collapseCluster = st.beta_expander(f'Opinion cluster #{i+1}', expanded=True)
         with collapseCluster:
             for sentence in clusteredInputs:
                 st.write(sentence)
@@ -326,7 +326,7 @@ def showInfo(iterator, n_clusters, n_results,n_books, review_max_len=350):
                                     model=model,
                                     searchTitle=True)
                     except ValueError:
-                        st.warning(f"It looks like this book doesn't have enough reviews to generate {n_clusters} distinct themes. Try decreasing how many themes you look for!")
+                        st.warning(f"It looks like this book doesn't have enough reviews to generate {n_clusters} distinct clusters. Try decreasing how many clusters you look for!")
                         continue
             if showAuthorClusters:
                 with clusters:
@@ -346,7 +346,7 @@ def showInfo(iterator, n_clusters, n_results,n_books, review_max_len=350):
                                     model=model,
                                     searchTitle=False)
                     except ValueError:
-                        st.warning(f"It looks like this author's books don't have enough reviews to generate {n_clusters} distinct themes. Try decreasing how many themes you look for!")
+                        st.warning(f"It looks like this author's books don't have enough reviews to generate {n_clusters} distinct clusters. Try decreasing how many clusters you look for!")
                         continue
             #if showSimilarBooks:
             #    showInfo(iterator=info.title.tolist()[0],
@@ -403,21 +403,28 @@ with options:
     goodreadsLink = st.checkbox('Show Goodreads links.')
     n_books = st.slider('Select how many book results to show',
                             1, 25, value=10, step=1)
-    n_clusters = st.slider('Select how many themes to search for in the reviews',
+    n_clusters = st.slider('Select how many clusters to search for in the reviews',
                                 2,10,value=8,step=1)
-    n_results = st.slider('Select how many reviews to show per theme',
+    n_results = st.slider('Select how many reviews to show per cluster',
                                 1,15,value=8,step=1)
-    review_max_len = st.slider('Select maximum review length for each theme group',
+    review_max_len = st.slider('Select maximum review length for each cluster calculation',
                                  50, 350, value=350, step=10)
 
 helpFAQ = st.sidebar.beta_expander('Help')
 with helpFAQ:
     '''
-    **Select how many themes:** This slider controls how many review clusters the algorithm will create.\n
-    **Select how many reviews:** This slider controls the maxmimum items the algorithm will pull from *each* cluster.\n
-    **Select maximum review length:** The maximum character count per review to be passed into the clustering algorithm.\n
+    **What is an opinion cluster?**\n
+    An opinion cluster is a set of reviews that display semantic textual similarities. The algorithm takes a review and analyses its grammatical structure, word choice, etc. and coverts into into a mathematical vector. It then does the same for all other reviews, and finds which reviews are close to each other in a 512-dimensional space. If you're curious, here's an [explanation with some images](https://amitness.com/2020/06/universal-sentence-encoder/_) \n
 
-    **Weighted Score:** The weighted score is a formula used to minimize the effect of high-score low-quantity reviews for a particular book. That is, books with very few reviews and high scores will not be trusted as much as books with many reviews: for example, consider two books with 5-star ratings; if one of them has ten 5-star ratings, and the other has five hundred, it is more likely that the latter will be more accurate.
+    **Select how many clusters:** \n
+    This slider controls how many review clusters the algorithm will create.\n
+    **Select how many reviews:** \n
+    This slider controls the maxmimum items the algorithm will pull from *each* cluster.\n
+    **Select maximum review length:** \n
+    The maximum character count per review to be passed into the clustering algorithm.
+
+    **Weighted Score:** \n
+    The weighted score is a formula used to minimize the effect of high-score low-quantity reviews for a particular book. That is, books with very few reviews and high scores will not be trusted as much as books with many reviews: for example, consider two books with 5-star ratings; if one of them has ten 5-star ratings, and the other has five hundred, it is more likely that the latter will be more accurate.
     '''
 
 st.sidebar.markdown('''
@@ -454,7 +461,7 @@ if not input_text:
 
     Once you have a list of books, you can load thematically linked review clusters that describe that particular book. You can also load thematically linked review clusters for an author - in this case, the machine learning algorithm will look through *all* reviews associated with that author, instead of just a particular book.
 
-    On the sidebar, you can adjust how many opinion themes are generated for a particular search, as well as the number of reviews per theme, and a couple of other options.
+    On the sidebar, you can adjust how many opinion clusters are generated for a particular search, as well as the number of reviews per clusters, and a couple of other options.
     '''
     about = st.beta_expander('About')
     with about:
@@ -557,9 +564,6 @@ elif input_text:
                  review_max_len=review_max_len)
     except IndexError:
         st.warning('Sorry, it looks like this book is not in our database.')
-
-
-
 
 if psutil.virtual_memory()[2] > 60:
     st.write('Clearing cache to make sure things continue to run smoothly. Hang on!')
