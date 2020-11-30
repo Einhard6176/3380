@@ -438,7 +438,6 @@ st.sidebar.markdown('''
 # Asking for user input
 input_text = st.text_input('Try specifying `author:` or `title: ` if you want more specific results')
 
-
 # Creating columns for book results on the left, review clusters on the right
 results, clusters = st.beta_columns(2)
 
