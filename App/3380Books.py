@@ -144,7 +144,7 @@ def showClusters(input_sentences, input_vectors, authorTitle, n_clusters, n_resu
         indices = pd.Series(inner_product).nlargest(n_results).index
         clusteredInputs = list(input_sentences.iloc[indices])
 
-        # Prints reviews that are closest to centroid
+        # Writes reviews that are closest to centroid
         st.markdown('---')
         collapseCluster = st.beta_expander(f'Theme #{i+1}', expanded=True)
         with collapseCluster:
@@ -197,7 +197,6 @@ def make_sentences(reviews_df):
     sentences_df = pd.DataFrame()
     ctr = 0
 
-    print(f'Starting tokenization')
 
     # Loop through each review
     for i in range(len(reviews_df)):
@@ -215,14 +214,8 @@ def make_sentences(reviews_df):
             new_row = row.copy()
             new_row.at['review_text'] = sentence
             sentences_df = sentences_df.append(new_row, ignore_index=True)
-
         ctr += 1
-        if (ctr % 500 == 0):
-            print(f'{ctr} reviews tokenized')
-
     sentences_df = sentences_df[(sentences_df.review_text.str.len() >= 20) & (sentences_df.review_text.str.len() <= 350)]
-    print(f'Tokenization complete: {len(sentences_df)} sentences tokenized\n')
-
     return sentences_df
 
 @st.cache(allow_output_mutation=True)
@@ -274,8 +267,24 @@ def bookRecommendation(book_title, mapping, cosine_similarities, n_books):
     similarity_score = sorted(similarity_score, key=lambda x: x[1], reverse=True)
     similarity_score = similarity_score[1:n_books+1]
     book_indices = [i[0] for i in similarity_score]
-    st.header(f'Book recommendations based on *{book_title}*')
     return (books['title'].iloc[book_indices])
+
+
+# Experimental
+def findSemanticallySimilarReviews(query,reviews, books, sentence_array,  n_books):
+    # Create vector from query and compare with global embedding
+    sentence = [query]
+    sentence_vector = np.array(embed(sentence))
+    inner_product = np.inner(sentence_vector, sentence_array)[0]
+
+    # Find sentences with highest inner products
+    top_n_sentences = pd.Series(inner_product).nlargest(n_results+1)
+    top_n_indices = top_n_sentences.index.tolist()
+    book_titles = books[books.book_id.isin(reviews.iloc[top_n_indices].book_id.tolist())].title.tolist()
+
+    return book_titles, reviews.iloc[top_n_indices].index
+
+
 
 #################### App UI and Interactions ####################
 
@@ -417,8 +426,21 @@ st.sidebar.markdown('''
 '''
 )
 
+commands = st.beta_expander('Useful commands')
+with commands:
+    '''
+    You can type in a title or partial title and the search algorithm will return some book recommendations. \n
+
+    You can also try any of the following prefixes to fine tune your search:\n
+    `author: `      - will search database for specific authors (`author: Frank Herbert`)\n
+    `title: `       - will search database for specific titles (`title: Dune`)\n
+    `description: ` - will search database for books that match description (`description: Set on the desert planet Arrakis`)\n
+    `beta: `        - Experimental mode without full functionality yet. Tries to find a book that will fit a "description of the book you want to read."
+    '''
+
 # Asking for user input
 input_text = st.text_input('Try specifying `author:` or `title: ` if you want more specific results')
+
 
 # Creating columns for book results on the left, review clusters on the right
 results, clusters = st.beta_columns(2)
@@ -467,9 +489,6 @@ if not input_text:
         * [Henri Vandersleyen](https://www.linkedin.com/in/henri-vandersleyen-a25a8312b/)
         '''
 
-#elif re.match(r'(author: ) (\w+) (title: ) (\w+)', input_text):
-#    pa
-
 # Author specific searches
 elif re.match(r'author: ', input_text):
     input_text = input_text.replace('author: ', '')
@@ -490,7 +509,6 @@ elif re.match(r'title: ', input_text):
             n_books=n_books,
             review_max_len=review_max_len)
 
-
 # Description specific searches
 elif re.match(r'description: ', input_text):
     input_text = input_text.replace('description: ', '')
@@ -505,9 +523,28 @@ elif re.match(r'description: ', input_text):
 elif re.match(r'list: all', input_text):
     st.table(books[['title', 'name', 'weighted_score']].rename(columns={'name':'author', 'weighted_score':'score'}))
 
+# Experimental book recommendations based on review text
+elif re.match(r'beta: ', input_text):
+    input_text = input_text.replace('beta: ', '')
+    book_title, review_index = findSemanticallySimilarReviews(query=input_text,
+                                               reviews=reviewsAll,
+                                               books=books,
+                                               n_books=n_books,
+                                               sentence_array=reviews_array)
+    with clusters:
+        for idx, i in enumerate(reviews.iloc[review_index].index):
+            reviews[reviews.index == i].review_text.tolist()[0]
+    showInfo(iterator=book_title,
+        n_clusters=n_clusters,
+        n_results=n_results,
+        n_books=n_books,
+        review_max_len=review_max_len)
+
 elif input_text:
     try:
         book_title = books[books.title.str.contains(input_text, case=False)].title.tolist()[0]
+        with results:
+            st.markdown(f'## Book recommendations based on *{book_title}*')
         cosine_similarities, mapping = createSimilarities(books)
         book_recommends = bookRecommendation(book_title=book_title,
                                             mapping=mapping,
@@ -520,6 +557,7 @@ elif input_text:
                  review_max_len=review_max_len)
     except IndexError:
         st.warning('Sorry, it looks like this book is not in our database.')
+
 
 
 

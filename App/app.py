@@ -158,11 +158,10 @@ def display_results(idx, i, book_recommends, common_titles):
 
 
 def Recommendations(sentence, reviews, books, n_results, n_clusters, n_cluster_reviews, review_max_len):
-    with results:
-        st.header('Book recommendations based on your input sentence:')
-        ''' _(In no particular order)_'''
-        top_n_indices, book_recommends = show_recommendations(sentence, reviews=reviews,    books=books, n_results=n_results-1)
+
         common_titles = []
+
+
         for idx, i in enumerate(reviews.iloc[top_n_indices].index):
             '**---**'
             book_title = display_results(idx,i, book_recommends, common_titles)
