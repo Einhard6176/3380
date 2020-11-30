@@ -14,19 +14,6 @@ from sklearn.metrics.pairwise import linear_kernel
 # To create sentence clusters
 from sklearn.cluster import KMeans
 
-# To create topic models
-# Gensim
-import gensim, spacy, logging, warnings
-import gensim.corpora as corpora
-from gensim.utils import lemmatize, simple_preprocess
-from gensim.models import CoherenceModel
-import matplotlib.pyplot as plt
-
-# NLTK Stop words
-from nltk.corpus import stopwords
-stop_words = stopwords.words('english')
-stop_words.extend(['from', 'subject', 're', 'edu', 'use', 'not', 'would', 'say', 'could', '_', 'be', 'know', 'good', 'go', 'get', 'do', 'done', 'try', 'many', 'some', 'nice', 'thank', 'think', 'see', 'rather', 'lot', 'make', 'want', 'seem', 'run', 'need', 'even', 'right', 'line', 'even', 'also', 'may', 'take', 'come'])
-
 # To load saved embeddings
 import joblib
 
