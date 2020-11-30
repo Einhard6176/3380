@@ -14,6 +14,19 @@ from sklearn.metrics.pairwise import linear_kernel
 # To create sentence clusters
 from sklearn.cluster import KMeans
 
+# To create topic models
+# Gensim
+import gensim, spacy, logging, warnings
+import gensim.corpora as corpora
+from gensim.utils import lemmatize, simple_preprocess
+from gensim.models import CoherenceModel
+import matplotlib.pyplot as plt
+
+# NLTK Stop words
+from nltk.corpus import stopwords
+stop_words = stopwords.words('english')
+stop_words.extend(['from', 'subject', 're', 'edu', 'use', 'not', 'would', 'say', 'could', '_', 'be', 'know', 'good', 'go', 'get', 'do', 'done', 'try', 'many', 'some', 'nice', 'thank', 'think', 'see', 'rather', 'lot', 'make', 'want', 'seem', 'run', 'need', 'even', 'right', 'line', 'even', 'also', 'may', 'take', 'come'])
+
 # To load saved embeddings
 import joblib
 
@@ -49,18 +62,18 @@ def dataLoader(datapath, books_file, reviews_file, reviewsAll_file):
     return books, reviews, reviewsAll
 
 @st.cache
-def loadEmbeddings():
+def loadEmbeddings(datapath):
     '''
     Loads pre-trained sentence and review arrays
     '''
     # Path to USE
-    embed = hub.load('/media/einhard/Seagate Expansion Drive/3380_data/data/tensorflow_hub/universal-sentence-encoder_4')
+    embed = hub.load(datapath + 'tensorflow_hub/universal-sentence-encoder_4')
 
     # Load pre-trained sentence arrays
     ## Reviews array is a set of embeddings trained on review lengths of < 90 characters
-    reviews_array = joblib.load('/media/einhard/Seagate Expansion Drive/3380_data/data/Models/reviewEmbeddings.pkl')
+    reviews_array = joblib.load(datapath + 'Models/reviewEmbeddings.pkl')
     ## Descriptions array is a set of embeddings trained on all book descriptions
-    descriptions_array = joblib.load('/media/einhard/Seagate Expansion Drive/3380_data/data/Models/descriptionEmbeddings.pkl')
+    descriptions_array = joblib.load(datapath + 'Models/descriptionEmbeddings.pkl')
 
     return embed, reviews_array, descriptions_array
 
@@ -150,6 +163,7 @@ def showClusters(input_sentences, input_vectors, authorTitle, n_clusters, n_resu
         with collapseCluster:
             for sentence in clusteredInputs:
                 st.write(sentence)
+
 
 #################### Tokenizing and saving data for embedding ####################
 
@@ -365,19 +379,19 @@ def showInfo(iterator, n_clusters, n_results,n_books, review_max_len=350):
 #######################################################################################
 
 # Paths to books and reviews DataFrames
-datapath = '/media/einhard/Seagate Expansion Drive/3380_data/data/Filtered books/'
+datapath = '/home/einhard/Documents/projects/3380_data/data/'
 
 # Stores tokenized reviews so they only need to be processed the first time that particular book is called
-tokenizedData = '/media/einhard/Seagate Expansion Drive/3380_data/data/app_data/'
-books_file = 'clean_filtered_books.csv'
-reviews_file = 'clean_filtered_reviews.csv'
-reviewsAll_file = 'reviews_for_cluster.csv'
+tokenizedData = '/home/einhard/Documents/projects/3380_data/data/app_data/'
+books_file = 'Filtered books/clean_filtered_books.csv'
+reviews_file = 'Filtered books/clean_filtered_reviews.csv'
+reviewsAll_file = 'Filtered books/reviews_for_cluster.csv'
 
 # Loading DataFrames
 books, reviews, reviewsAll = dataLoader(datapath, books_file, reviews_file, reviewsAll_file)
 
 # Loadding pre-trained embeddings and embedder for input sentences
-embed, reviews_array, descriptions_array = loadEmbeddings()
+embed, reviews_array, descriptions_array = loadEmbeddings(datapath)
 
 # Setting base URL for Goodreads
 goodreadsURL = 'https://www.goodreads.com/book/show/'
