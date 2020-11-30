@@ -127,9 +127,9 @@ def showClusters(input_sentences, input_vectors, authorTitle, n_clusters, n_resu
     '''
     if searchTitle:
         # Displays which book's reviews are being clustered
-        st.header(f'Opinion clusters about *{authorTitle}*')
+        st.header(f'Thematic review clusters about *{authorTitle}*')
     else:
-        st.header(f'Opinion clusters about {authorTitle}\'s books')
+        st.header(f'Thematic review clusters about {authorTitle}\'s books')
 
     # Iterates through centroids to and computes inner products to find nlargest
     for i in range(n_clusters):
@@ -140,7 +140,7 @@ def showClusters(input_sentences, input_vectors, authorTitle, n_clusters, n_resu
 
         # Prints reviews that are closest to centroid
         st.markdown('---')
-        collapseCluster = st.beta_expander(f'Cluster #{i+1}', expanded=True)
+        collapseCluster = st.beta_expander(f'Theme #{i+1}', expanded=True)
         with collapseCluster:
             for sentence in clusteredInputs:
                 st.write(sentence)
@@ -262,7 +262,7 @@ def showInfo(iterator, n_clusters, n_results,n_books, review_max_len=350):
             try:
                 info = books[books.title == i]
                 '**---**'
-                '**Book title:**', info.title.tolist()[0]
+                '**Book title:**', f'*{info.title.tolist()[0]}*'
                 '**Author:**', info.name.tolist()[0]
                 '**Weighted Score**', str(round(info.weighted_score.tolist()[0], 2)), '/ 5'
 
@@ -318,7 +318,7 @@ def showInfo(iterator, n_clusters, n_results,n_books, review_max_len=350):
                 good_reads_link = goodreadsURL + info.book_id.astype(str).tolist()[0]
                 st.write(f'*Goodreads Link: {good_reads_link}*')
 
-                
+
 #######################################################################################
                             # Load variables and data
 #######################################################################################
@@ -346,6 +346,7 @@ goodreadsURL = 'https://www.goodreads.com/book/show/'
                                 # Web App
 #######################################################################################
 
+
 '''# 3380 Books'''
 
 st.sidebar.markdown(
@@ -359,16 +360,30 @@ st.sidebar.markdown(
 options = st.sidebar.beta_expander('Options')
 with options:
     goodreadsLink = st.checkbox('Show Goodreads links.')
+    n_books = st.slider('Select how many book results to show',
+                            1, 25, value=10, step=1)
     n_clusters = st.slider('Select how many themes to search for in the reviews',
                                 2,10,value=8,step=1)
     n_results = st.slider('Select how many reviews to show per theme',
                                 1,15,value=8,step=1)
-    n_books = st.slider('Select how many book results to show',
-                                1, 25, value=10, step=1)
     review_max_len = st.slider('Select maximum review length for each theme group',
                                  50, 350, value=350, step=10)
 
+helpFAQ = st.sidebar.beta_expander('Help')
+with helpFAQ:
+    '''
+    **Select how many themes:** This slider controls how many review clusters the algorithm will create.\n
+    **Select how many reviews:** This slider controls the maxmimum items the algorithm will pull from *each* cluster.\n
+    **Select maximum review length:** The maximum character count per review to be passed into the clustering algorithm.\n
 
+    **Weighted Score:** The weighted score is a formula used to minimize the effect of high-score low-quantity reviews for a particular book. That is, books with very few reviews and high scores will not be trusted as much as books with many reviews: for example, consider two books with 5-star ratings; if one of them has ten 5-star ratings, and the other has five hundred, it is more likely that the latter will be more accurate.
+    '''
+
+st.sidebar.markdown('''
+---
+*Created by [Adnan Valdes](https://www.linkedin.com/in/adnanvaldes/)*
+'''
+)
 
 # Asking for user input
 input_text = st.text_input('Try specifying `author:` or `title: ` if you want more specific results')
