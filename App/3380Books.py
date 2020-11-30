@@ -23,7 +23,9 @@ import re
 # To create webapp
 import psutil
 import streamlit as st
-st.set_page_config(layout="wide")
+st.set_page_config(page_title='3380 Books',
+                  layout="wide",
+                  page_icon= ':books:')
 from streamlit import caching
 
 
@@ -270,8 +272,9 @@ def bookRecommendation(book_title, mapping, cosine_similarities, n_books):
     book_index = mapping[book_title]
     similarity_score = list(enumerate(cosine_similarities[book_index]))
     similarity_score = sorted(similarity_score, key=lambda x: x[1], reverse=True)
-    similarity_score = similarity_score[1:n_books]
+    similarity_score = similarity_score[1:n_books+1]
     book_indices = [i[0] for i in similarity_score]
+    st.header(f'Book recommendations based on *{book_title}*')
     return (books['title'].iloc[book_indices])
 
 #################### App UI and Interactions ####################
@@ -290,6 +293,7 @@ def showInfo(iterator, n_clusters, n_results,n_books, review_max_len=350):
                 showDescription = st.beta_expander(label='Show description?')
                 showReviewClusters = st.button(label='Show opinion clusters for this book?', key=idx)
                 showAuthorClusters = st.button(label='Show opinion clusters for this author?', key=idx+100)
+            #    showSimilarBooks = st.button(label='Show similar books?', key=idx+555)
             except IndexError:
                 break
             with showDescription:
@@ -335,6 +339,13 @@ def showInfo(iterator, n_clusters, n_results,n_books, review_max_len=350):
                     except ValueError:
                         st.warning(f"It looks like this author's books don't have enough reviews to generate {n_clusters} distinct themes. Try decreasing how many themes you look for!")
                         continue
+            #if showSimilarBooks:
+            #    showInfo(iterator=info.title.tolist()[0],
+            #            n_clusters=n_clusters,
+            #            n_results=n_results,
+            #            n_books=n_books,
+            #            review_max_len=review_max_len)
+
             if goodreadsLink:
                 good_reads_link = goodreadsURL + info.book_id.astype(str).tolist()[0]
                 st.write(f'*Goodreads Link: {good_reads_link}*')
@@ -479,25 +490,36 @@ elif re.match(r'title: ', input_text):
             n_books=n_books,
             review_max_len=review_max_len)
 
-elif input_text:
-    book_title = books[books.title.str.contains(input_text, case=False)].title.tolist()[0]
-    cosine_similarities, mapping = createSimilarities(books)
-    book_recommends = bookRecommendation(book_title=book_title,
-                                        mapping=mapping,
-                                        cosine_similarities=cosine_similarities,
-                                        n_books=n_books)
-    showInfo(iterator=book_recommends,
-             n_clusters=n_clusters,
-             n_results=n_results,
-             n_books=n_books,
-             review_max_len=review_max_len)
-
 
 # Description specific searches
 elif re.match(r'description: ', input_text):
     input_text = input_text.replace('description: ', '')
+    book_title = books[books.description.str.contains(input_text, case=False)].title.tolist()
+    showInfo(iterator=book_title,
+        n_clusters=n_clusters,
+        n_results=n_results,
+        n_books=n_books,
+        review_max_len=review_max_len)
 
+# Show all books in database
+elif re.match(r'list: all', input_text):
+    st.table(books[['title', 'name', 'weighted_score']].rename(columns={'name':'author', 'weighted_score':'score'}))
 
+elif input_text:
+    try:
+        book_title = books[books.title.str.contains(input_text, case=False)].title.tolist()[0]
+        cosine_similarities, mapping = createSimilarities(books)
+        book_recommends = bookRecommendation(book_title=book_title,
+                                            mapping=mapping,
+                                            cosine_similarities=cosine_similarities,
+                                            n_books=n_books)
+        showInfo(iterator=book_recommends,
+                 n_clusters=n_clusters,
+                 n_results=n_results,
+                 n_books=n_books,
+                 review_max_len=review_max_len)
+    except IndexError:
+        st.warning('Sorry, it looks like this book is not in our database.')
 
 
 
