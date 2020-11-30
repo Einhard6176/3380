@@ -278,7 +278,7 @@ def findSemanticallySimilarReviews(query,reviews, books, sentence_array,  n_book
     inner_product = np.inner(sentence_vector, sentence_array)[0]
 
     # Find sentences with highest inner products
-    top_n_sentences = pd.Series(inner_product).nlargest(n_results+1)
+    top_n_sentences = pd.Series(inner_product).nlargest(n_books+1)
     top_n_indices = top_n_sentences.index.tolist()
     book_titles = books[books.book_id.isin(reviews.iloc[top_n_indices].book_id.tolist())].title.tolist()
 
@@ -442,7 +442,6 @@ with commands:
     `author: `      - will search database for specific authors (`author: Frank Herbert`)\n
     `title: `       - will search database for specific titles (`title: Dune`)\n
     `description: ` - will search database for books that match description (`description: Set on the desert planet Arrakis`)\n
-    `beta: `        - Experimental mode without full functionality yet. Tries to find a book that will fit a "description of the book you want to read."
     '''
 
 # Asking for user input
