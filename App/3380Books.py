@@ -7,6 +7,10 @@ from langdetect import detect
 from pathlib import Path
 from nltk.tokenize import sent_tokenize
 
+# To create recommendations
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import linear_kernel
+
 # To create sentence clusters
 from sklearn.cluster import KMeans
 
@@ -252,6 +256,23 @@ def findSimilarity(input_text, df, searchDescription):
 def searchBookTitles(input_text, reviews, books, n_clusters, n_cluster_reviews):
     pass
 
+# Basic TF-IDF cosine similarity engine
+@st.cache
+def createSimilarities(books_df):
+    tf = TfidfVectorizer(analyzer='word', ngram_range=(1, 5), min_df=0, stop_words='english')
+    tfidf_matrix = tf.fit_transform(books['description'])
+    cosine_similarities = linear_kernel(tfidf_matrix, tfidf_matrix)
+    mapping = pd.Series(books.index,index = books['title'])
+    return cosine_similarities, mapping
+
+
+def bookRecommendation(book_title, mapping, cosine_similarities, n_books):
+    book_index = mapping[book_title]
+    similarity_score = list(enumerate(cosine_similarities[book_index]))
+    similarity_score = sorted(similarity_score, key=lambda x: x[1], reverse=True)
+    similarity_score = similarity_score[1:n_books]
+    book_indices = [i[0] for i in similarity_score]
+    return (books['title'].iloc[book_indices])
 
 #################### App UI and Interactions ####################
 
@@ -435,6 +456,9 @@ if not input_text:
         * [Henri Vandersleyen](https://www.linkedin.com/in/henri-vandersleyen-a25a8312b/)
         '''
 
+#elif re.match(r'(author: ) (\w+) (title: ) (\w+)', input_text):
+#    pa
+
 # Author specific searches
 elif re.match(r'author: ', input_text):
     input_text = input_text.replace('author: ', '')
@@ -445,11 +469,8 @@ elif re.match(r'author: ', input_text):
             n_books=n_books,
             review_max_len=review_max_len)
 
-elif re.match(r'(author: ) (\w+) (title: ) (\w+)', input_text):
-    pass
-
 # Title book searches
-elif input_text or re.match(r'title: ', input_text):
+elif re.match(r'title: ', input_text):
     input_text = input_text.replace('title: ', '')
     book_title = books[books.title.str.contains(input_text, case=False)].title.tolist()
     showInfo(iterator=book_title,
@@ -458,7 +479,18 @@ elif input_text or re.match(r'title: ', input_text):
             n_books=n_books,
             review_max_len=review_max_len)
 
-
+elif input_text:
+    book_title = books[books.title.str.contains(input_text, case=False)].title.tolist()[0]
+    cosine_similarities, mapping = createSimilarities(books)
+    book_recommends = bookRecommendation(book_title=book_title,
+                                        mapping=mapping,
+                                        cosine_similarities=cosine_similarities,
+                                        n_books=n_books)
+    showInfo(iterator=book_recommends,
+             n_clusters=n_clusters,
+             n_results=n_results,
+             n_books=n_books,
+             review_max_len=review_max_len)
 
 
 # Description specific searches
