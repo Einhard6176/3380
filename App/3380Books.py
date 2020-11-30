@@ -14,6 +14,7 @@ from sklearn.metrics.pairwise import linear_kernel
 # To create sentence clusters
 from sklearn.cluster import KMeans
 
+
 # To load saved embeddings
 import joblib
 
@@ -151,6 +152,7 @@ def showClusters(input_sentences, input_vectors, authorTitle, n_clusters, n_resu
             for sentence in clusteredInputs:
                 st.write(sentence)
 
+
 #################### Tokenizing and saving data for embedding ####################
 
 @st.cache(allow_output_mutation=True)
@@ -221,22 +223,22 @@ def make_sentences(reviews_df):
 @st.cache(allow_output_mutation=True)
 def cleanAndTokenize(df, filepath, searchTitle, author):
     if searchTitle:
-        if Path(filepath + 'book_id/' + df.book_id.iloc[1].astype(str) + '.csv').is_file():
-            sentences_df = pd.read_csv(filepath + 'book_id/' + df.book_id.iloc[1].astype(str) + '.csv').drop('Unnamed: 0', axis=1)
+        if Path(filepath + 'app_data/book_id/' + df.book_id.iloc[1].astype(str) + '.csv').is_file():
+            sentences_df = pd.read_csv(filepath + 'app_data/book_id/' + df.book_id.iloc[1].astype(str) + '.csv').drop('Unnamed: 0', axis=1)
         else:
             reviews_df = clean_reviews(df)
             sentences_df =  make_sentences(reviews_df)
-            sentences_df.to_csv(filepath + 'book_id/' + df.book_id.iloc[1].astype(str) + '.csv')
+            sentences_df.to_csv(filepath + 'app_data/book_id/' + df.book_id.iloc[1].astype(str) + '.csv')
         sentences_df.book_id = sentences_df.book_id.astype(int)
         return sentences_df
 
     else:
-        if Path(filepath + 'author/' + author + '.csv').is_file():
-            sentences_df = pd.read_csv(filepath + 'author/' + author + '.csv').drop('Unnamed: 0', axis=1)
+        if Path(filepath + 'app_data/author/' + author + '.csv').is_file():
+            sentences_df = pd.read_csv(filepath + 'app_data/author/' + author + '.csv').drop('Unnamed: 0', axis=1)
         else:
             reviews_df = clean_reviews(df)
             sentences_df =  make_sentences(reviews_df)
-            sentences_df.to_csv(filepath + 'author/' + author + '.csv')
+            sentences_df.to_csv(filepath + 'app_data/author/' + author + '.csv')
         sentences_df.book_id = sentences_df.book_id.astype(int)
 
         return sentences_df
@@ -365,13 +367,13 @@ def showInfo(iterator, n_clusters, n_results,n_books, review_max_len=350):
 #######################################################################################
 
 # Paths to books and reviews DataFrames
-datapath = '/media/einhard/Seagate Expansion Drive/3380_data/data/Filtered books/'
+datapath = '/media/einhard/Seagate Expansion Drive/3380_data/data/'
 
 # Stores tokenized reviews so they only need to be processed the first time that particular book is called
-tokenizedData = '/media/einhard/Seagate Expansion Drive/3380_data/data/app_data/'
-books_file = 'clean_filtered_books.csv'
-reviews_file = 'clean_filtered_reviews.csv'
-reviewsAll_file = 'reviews_for_cluster.csv'
+tokenizedData = '/media/einhard/Seagate Expansion Drive/3380_data/data/'
+books_file = 'Filtered books/clean_filtered_books.csv'
+reviews_file = 'Filtered books/clean_filtered_reviews.csv'
+reviewsAll_file = 'Filtered books/reviews_for_cluster.csv'
 
 # Loading DataFrames
 books, reviews, reviewsAll = dataLoader(datapath, books_file, reviews_file, reviewsAll_file)
