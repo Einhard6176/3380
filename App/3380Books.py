@@ -39,7 +39,7 @@ from collections import Counter
 #################### Data Loading  Functions ####################
 
 @st.cache
-def dataLoader(datapath, books_file, reviewsAll_file):
+def dataLoader(datapath, books_file, reviewsAll_file, tokenized_descriptions_file):
     '''
     Loads DataFrames with books and review information
 
@@ -50,7 +50,8 @@ def dataLoader(datapath, books_file, reviewsAll_file):
     '''
     books = pd.read_csv(datapath + books_file).drop('Unnamed: 0', axis=1).fillna('')
     reviewsAll = pd.read_csv(datapath + reviewsAll_file).drop('Unnamed: 0', axis=1)
-    return books, reviewsAll
+    description_sentences = pd.read_csv(datapath + tokenized_descriptions_file)
+    return books, reviewsAll, description_sentences
 
 @st.cache
 def loadEmbeddings(datapath):
@@ -66,10 +67,10 @@ def loadEmbeddings(datapath):
     # Load pre-trained sentence arrays
     ## Reviews array is a set of embeddings trained on review lengths of < 90 characters
     #reviews_array = joblib.load(datapath + 'Models/reviewEmbeddings.pkl')
-    ## Descriptions array is a set of embeddings trained on all book descriptions
-    #descriptions_array = joblib.load(datapath + 'Models/descriptionEmbeddings.pkl')
+    # Descriptions array is a set of embeddings trained on all book descriptions
+    descriptions_array = joblib.load('/media/einhard/Seagate Expansion Drive/3380_data/data/Models/descriptionsTokeniziedEmbedding.pkl')
 
-    return embed # reviews_array, descriptions_array
+    return embed, descriptions_array # reviews_array,
 
 #################### Basic Clustering Functionality ####################
 
@@ -271,6 +272,14 @@ def findSimilarity(input_text, df, searchDescription):
 def searchBookTitles(input_text, reviews, books, n_clusters, n_cluster_reviews):
     pass
 
+def semanticSearch(input_text, n_books):
+    query = embed([input_text])
+    result = np.inner(descriptions_array, query)
+    iloc_desc = pd.DataFrame(result).sort_values(0, ascending=False).reset_index().rename({'index':'position'}, axis=1)['position'].tolist()
+    # iloc_books = description_sentences.iloc[iloc_desc][:10].book_id.tolist()
+    book_title = description_sentences.iloc[iloc_desc][:n_books].title.tolist()
+    return book_title
+
 # Basic TF-IDF cosine similarity engine
 @st.cache(allow_output_mutation=True)
 def createSimilarities(books_df):
@@ -304,6 +313,7 @@ def bookRecommendation(book_title, mapping, cosine_similarities, n_books):
     similarity_score = similarity_score[1:n_books+1]
     book_indices = [i[0] for i in similarity_score]
     return (books['title'].iloc[book_indices])
+
 
 ##### Experimental functionality, WIP #####
 
@@ -411,12 +421,13 @@ datapath = '/media/einhard/Seagate Expansion Drive/3380_data/data/'
 tokenizedData = '/media/einhard/Seagate Expansion Drive/3380_data/data/'
 books_file = 'Filtered books/clean_filtered_books.csv'
 reviewsAll_file = 'Filtered books/reviews_for_cluster.csv'
+descriptions_tokenized_file = 'Filtered books/description_sentences.csv'
 
 # Loading DataFrames
-books, reviewsAll = dataLoader(datapath, books_file, reviewsAll_file)
+books, reviewsAll, description_sentences = dataLoader(datapath, books_file, reviewsAll_file, descriptions_tokenized_file)
 
 # Loadding pre-trained embeddings and embedder for input sentences
-embed = loadEmbeddings(datapath) # , reviews_array, descriptions_array
+embed, descriptions_array = loadEmbeddings(datapath) # , reviews_array, descriptions_array
 
 # Setting base URL for Goodreads
 goodreadsURL = 'https://www.goodreads.com/book/show/'
@@ -588,15 +599,17 @@ elif re.match(r'list: all', input_text):
 
 elif input_text:
     try:
-        book_title = books[books.title.str.contains(input_text, case=False)].sort_values('weighted_score', ascending=False).title.tolist()[0]
+        #book_title = books[books.title.str.contains(input_text, case=False)].sort_values('weighted_score', ascending=False).title.tolist()[0]
+        book_title = semanticSearch(input_text, n_books)
         with results:
-            st.markdown(f'## Book recommendations based on *{book_title}*')
-        cosine_similarities, mapping = createSimilarities(books)
-        book_recommends = bookRecommendation(book_title=book_title,
-                                            mapping=mapping,
-                                            cosine_similarities=cosine_similarities,
-                                            n_books=n_books)
-        showInfo(iterator=book_recommends,
+            # st.markdown(f'## Book recommendations based on *{book_title}*')
+            st.markdown('## Book recommendations based on your input:')
+        #cosine_similarities, mapping = createSimilarities(books)
+        #book_recommends = bookRecommendation(book_title=book_title,
+        #                                    mapping=mapping,
+        #                                    cosine_similarities=cosine_similarities,
+        #                                    n_books=n_books)
+        showInfo(iterator=book_title, #book_recommends,
                  n_clusters=n_clusters,
                  n_results=n_results,
                  n_books=n_books,
