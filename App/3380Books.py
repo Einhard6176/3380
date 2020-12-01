@@ -170,6 +170,9 @@ def clean_reviews(df):
     # Drop duplicates
     df.drop_duplicates(inplace=True)
 
+    #Fill nans
+    df.fillna('la maquina solo puede en ingles', inplace=True)
+
     # Define spoiler marker & remove from all reviews
     spoiler_str_ucsd = '\*\* spoiler alert \*\* \n'
     df['review_text'] = df['review_text'].str.replace(spoiler_str_ucsd, '')
