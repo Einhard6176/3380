@@ -616,7 +616,7 @@ elif input_text:
                  n_books=n_books,
                  review_max_len=review_max_len)
     except IndexError:
-        st.warning('Sorry, it looks like this book is not in our database.')
+        st.warning('Sorry, it looks like this book is not in our database or there are no text reviews available.')
 
 if psutil.virtual_memory()[2] > 60:
     st.write('Clearing cache to make sure things continue to run smoothly. Hang on!')
