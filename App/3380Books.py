@@ -495,15 +495,13 @@ if not input_text:
     '''
     ### Some useful commands:
 
-    You can type in a title or partial title and the search algorithm will return some book recommendations. \n
-
-    You can also try any of the following prefixes to fine tune your search:\n
+    You can try any of the following prefixes to fine tune your search:\n
     `author: `      - will search database for specific authors (`author: Frank Herbert`)\n
     `title: `       - will search database for specific titles (`title: Dune`)\n
     `description: ` - will search database for books that match description (`description: Set on the desert planet Arrakis`)\n
     ### How this works:
 
-    In the search bar above, type the title of a book you're interested in. The algorithm will then come back with some book recommendations based on the description of the book you entered. If you're looking for a particular author, use the `author: ` prefix, or the `title: ` prefix if you want a particular book. You can type partial names or titles (i.e. you can search for "author: Adrian" and the app will return all authors that have "Adrian" in their name).
+    With the search bar above you can look for a book title, author, or even a description of a book you're interested in. If you're looking for a particular author, use the `author: ` prefix, or the `title: ` prefix if you want a particular book. You can type partial names or titles (i.e. you can search for "author: Adrian" and the app will return all authors that have "Adrian" in their name).
 
     Once you have a list of books, you can load review clusters that describe that particular book. You can also load review clusters for an author - in this case, the machine learning algorithm will look through *all* reviews associated with that author, instead of just a particular book.
 
@@ -601,9 +599,9 @@ elif input_text:
     try:
         #book_title = books[books.title.str.contains(input_text, case=False)].sort_values('weighted_score', ascending=False).title.tolist()[0]
         book_title = semanticSearch(input_text, n_books)
-        with results:
-            # st.markdown(f'## Book recommendations based on *{book_title}*')
-            st.markdown('## Book recommendations based on your input:')
+        # with results:
+        #     # st.markdown(f'## Book recommendations based on *{book_title}*')
+        #     st.markdown('## Book recommendations based on your input:')
         #cosine_similarities, mapping = createSimilarities(books)
         #book_recommends = bookRecommendation(book_title=book_title,
         #                                    mapping=mapping,
