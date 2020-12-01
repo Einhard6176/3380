@@ -579,8 +579,6 @@ elif re.match(r'description: ', input_text):
 elif re.match(r'list: all', input_text):
     st.table(books[['title', 'name', 'weighted_score']].rename(columns={'name':'author', 'weighted_score':'score'}))
 
-    listAll()
-
 ##### Experimental functionality, WIP #####
 
 # # Experimental book recommendations based on review text
