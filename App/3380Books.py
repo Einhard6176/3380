@@ -191,11 +191,13 @@ def clean_reviews(df):
 
         # Save review to variable
         review = df.iloc[i]['review_text']
-
-        # Check if review is English
-        if detect(review) == 'en':
-            # If so, add row to English-language dataframe
-            reviews_df = reviews_df.append(df.iloc[i, :])
+        try:
+            # Check if review is English
+            if detect(review) == 'en':
+                # If so, add row to English-language dataframe
+                reviews_df = reviews_df.append(df.iloc[i, :])
+        except:
+            continue
 
     reviews_df.book_id = reviews_df.book_id.astype(int)
     return reviews_df
@@ -248,7 +250,7 @@ def cleanAndTokenize(df, filepath, searchTitle, author):
         if Path(filepath + 'app_data/book_id/' + df.book_id.iloc[1].astype(str) + '.csv').is_file():
             sentences_df = pd.read_csv(filepath + 'app_data/book_id/' + df.book_id.iloc[1].astype(str) + '.csv').drop('Unnamed: 0', axis=1)
         else:
-            reviews_df = clean_reviews(df)
+            reviews_df = clean_reviews(df.fillna('la maquina no puede en ingles'))
             sentences_df =  make_sentences(reviews_df)
             sentences_df.to_csv(filepath + 'app_data/book_id/' + df.book_id.iloc[1].astype(str) + '.csv')
         sentences_df.book_id = sentences_df.book_id.astype(int)
@@ -258,7 +260,7 @@ def cleanAndTokenize(df, filepath, searchTitle, author):
         if Path(filepath + 'app_data/author/' + author + '.csv').is_file():
             sentences_df = pd.read_csv(filepath + 'app_data/author/' + author + '.csv').drop('Unnamed: 0', axis=1)
         else:
-            reviews_df = clean_reviews(df)
+            reviews_df = clean_reviews(df.fillna('la maquina no puede en ingles'))
             sentences_df =  make_sentences(reviews_df)
             sentences_df.to_csv(filepath + 'app_data/author/' + author + '.csv')
         sentences_df.book_id = sentences_df.book_id.astype(int)
