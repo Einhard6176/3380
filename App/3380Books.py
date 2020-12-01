@@ -532,9 +532,9 @@ if not input_text:
         '''
 
 # Author specific searches
-elif re.match(r'author: ', input_text):
-    input_text = input_text.replace('author: ', '')
-    author_name = books[books.name.str.contains(input_text, case=False)].title.tolist()
+elif re.match(r'author:', input_text):
+    input_text = input_text.replace('author:', '').strip()
+    author_name = books[books.name.str.contains(input_text, case=False)].sort_values('weighted_score', ascending=False).title.tolist()
     showInfo(iterator=author_name,
             n_clusters=n_clusters,
             n_results=n_results,
@@ -542,9 +542,9 @@ elif re.match(r'author: ', input_text):
             review_max_len=review_max_len)
 
 # Title book searches
-elif re.match(r'title: ', input_text):
-    input_text = input_text.replace('title: ', '')
-    book_title = books[books.title.str.contains(input_text, case=False)].title.tolist()
+elif re.match(r'title:', input_text):
+    input_text = input_text.replace('title:', '').strip()
+    book_title = books[books.title.str.contains(input_text, case=False)].sort_values('weighted_score', ascending=False).title.tolist()
     showInfo(iterator=book_title,
             n_clusters=n_clusters,
             n_results=n_results,
@@ -553,8 +553,8 @@ elif re.match(r'title: ', input_text):
 
 # Description specific searches
 elif re.match(r'description: ', input_text):
-    input_text = input_text.replace('description: ', '')
-    book_title = books[books.description.str.contains(input_text, case=False)].title.tolist()
+    input_text = input_text.replace('description:', '').strip()
+    book_title = books[books.description.str.contains(input_text, case=False)].sort_values('weighted_score', ascending=False).title.tolist()
     showInfo(iterator=book_title,
         n_clusters=n_clusters,
         n_results=n_results,
@@ -588,7 +588,7 @@ elif re.match(r'list: all', input_text):
 
 elif input_text:
     try:
-        book_title = books[books.title.str.contains(input_text, case=False)].title.tolist()[0]
+        book_title = books[books.title.str.contains(input_text, case=False)].sort_values('weighted_score', ascending=False).title.tolist()[0]
         with results:
             st.markdown(f'## Book recommendations based on *{book_title}*')
         cosine_similarities, mapping = createSimilarities(books)
