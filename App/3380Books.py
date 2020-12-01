@@ -39,30 +39,37 @@ from collections import Counter
 #################### Data Loading  Functions ####################
 
 @st.cache
-def dataLoader(datapath, books_file, reviews_file, reviewsAll_file):
+def dataLoader(datapath, books_file, reviewsAll_file):
     '''
     Loads DataFrames with books and review information
+
+    Args:
+        datapath = Path/to/directory/with/data
+        books_file = name of CSV with book metadata
+        reviewsALL_file = name of CSV with filtered reviews --> Generally, this is the file that will be used in the app.
     '''
     books = pd.read_csv(datapath + books_file).drop('Unnamed: 0', axis=1).fillna('')
-    reviews = pd.read_csv(datapath + reviews_file).drop('Unnamed: 0', axis=1)
     reviewsAll = pd.read_csv(datapath + reviewsAll_file).drop('Unnamed: 0', axis=1)
-    return books, reviews, reviewsAll
+    return books, reviewsAll
 
 @st.cache
 def loadEmbeddings(datapath):
     '''
     Loads pre-trained sentence and review arrays
+
+    Args:
+        datapath = Path/to/directory/with/data
     '''
     # Path to USE
     embed = hub.load(datapath + 'tensorflow_hub/universal-sentence-encoder_4')
 
     # Load pre-trained sentence arrays
     ## Reviews array is a set of embeddings trained on review lengths of < 90 characters
-    reviews_array = joblib.load(datapath + 'Models/reviewEmbeddings.pkl')
+    #reviews_array = joblib.load(datapath + 'Models/reviewEmbeddings.pkl')
     ## Descriptions array is a set of embeddings trained on all book descriptions
-    descriptions_array = joblib.load(datapath + 'Models/descriptionEmbeddings.pkl')
+    #descriptions_array = joblib.load(datapath + 'Models/descriptionEmbeddings.pkl')
 
-    return embed, reviews_array, descriptions_array
+    return embed # reviews_array, descriptions_array
 
 #################### Basic Clustering Functionality ####################
 
@@ -196,8 +203,6 @@ def make_sentences(reviews_df):
     '''
     # Initialize dataframe to store review sentences, and counter
     sentences_df = pd.DataFrame()
-    ctr = 0
-
 
     # Loop through each review
     for i in range(len(reviews_df)):
@@ -215,12 +220,26 @@ def make_sentences(reviews_df):
             new_row = row.copy()
             new_row.at['review_text'] = sentence
             sentences_df = sentences_df.append(new_row, ignore_index=True)
-        ctr += 1
+
     sentences_df = sentences_df[(sentences_df.review_text.str.len() >= 20) & (sentences_df.review_text.str.len() <= 350)]
     return sentences_df
 
 @st.cache(allow_output_mutation=True)
 def cleanAndTokenize(df, filepath, searchTitle, author):
+    '''
+    Helper function that first checks if a CSV file has already been generated for that book or author.
+    If not, runs another cleaning pass on the set of reviews and tokenizes text into sentences before
+    saving a CSV file to speed up recalls for the same book alter.
+
+    Returns DataFrame with tokenized reviews for a particular author or book.
+
+    Args:
+        df          = dataframe to tokenize. It will save and load based on the first book_id if searching titles, or based on the author passed as an argument.
+        filepath    = Path to output folder. If if a file exits, it will look in this path for the CSV files. Subdirectories must be made for ./book_id/ and for ./author/
+        searchTitle = Specify whether the reviews for an individual book should be tokenized or the all reviews for an author.
+        author      = If searchTitle=False, the "author" argument is used for saving and loading files. Note that it has no effect on the tokenization itself.
+    '''
+
     if searchTitle:
         if Path(filepath + 'app_data/book_id/' + df.book_id.iloc[1].astype(str) + '.csv').is_file():
             sentences_df = pd.read_csv(filepath + 'app_data/book_id/' + df.book_id.iloc[1].astype(str) + '.csv').drop('Unnamed: 0', axis=1)
@@ -253,8 +272,15 @@ def searchBookTitles(input_text, reviews, books, n_clusters, n_cluster_reviews):
     pass
 
 # Basic TF-IDF cosine similarity engine
-@st.cache
+@st.cache(allow_output_mutation=True)
 def createSimilarities(books_df):
+    '''
+    Creates a similarity matrix for book recommendations based on description.
+    Returns similarity matrix and mapping for book-finding
+
+    Args:
+        books_df = DataFrame with books and descriptions
+    '''
     tf = TfidfVectorizer(analyzer='word', ngram_range=(1, 5), min_df=0, stop_words='english')
     tfidf_matrix = tf.fit_transform(books['description'])
     cosine_similarities = linear_kernel(tfidf_matrix, tfidf_matrix)
@@ -263,6 +289,15 @@ def createSimilarities(books_df):
 
 @st.cache(allow_output_mutation=True)
 def bookRecommendation(book_title, mapping, cosine_similarities, n_books):
+    '''
+    Function to match input book with recommended books using cosine similarity matrix.
+
+    Args:
+        book_title          = Input book title. Recommendations will be made based on this.
+        mapping             = Mapping of cosine similarity matrix to book indices
+        cosine_similarities = Similarity matrix for content based recommendation
+        n_books             = How many books to recommend
+    '''
     book_index = mapping[book_title]
     similarity_score = list(enumerate(cosine_similarities[book_index]))
     similarity_score = sorted(similarity_score, key=lambda x: x[1], reverse=True)
@@ -270,20 +305,21 @@ def bookRecommendation(book_title, mapping, cosine_similarities, n_books):
     book_indices = [i[0] for i in similarity_score]
     return (books['title'].iloc[book_indices])
 
+##### Experimental functionality, WIP #####
 
-@st.cache(allow_output_mutation=True)
-def findSemanticallySimilarReviews(query,reviews, books, sentence_array,  n_books):
-    # Create vector from query and compare with global embedding
-    sentence = [query]
-    sentence_vector = np.array(embed(sentence))
-    inner_product = np.inner(sentence_vector, sentence_array)[0]
-
-    # Find sentences with highest inner products
-    top_n_sentences = pd.Series(inner_product).nlargest(n_books+1)
-    top_n_indices = top_n_sentences.index.tolist()
-    book_titles = books[books.book_id.isin(reviews.iloc[top_n_indices].book_id.tolist())].title.tolist()
-
-    return book_titles, reviews.iloc[top_n_indices].index
+#@st.cache(allow_output_mutation=True)
+#def findSemanticallySimilarReviews(query,reviews, books, sentence_array,  n_books):
+#    # Create vector from query and compare with global embedding
+#    sentence = [query]
+#    sentence_vector = np.array(embed(sentence))
+#    inner_product = np.inner(sentence_vector, sentence_array)[0]
+#
+#    # Find sentences with highest inner products
+#    top_n_sentences = pd.Series(inner_product).nlargest(n_books+1)
+#    top_n_indices = top_n_sentences.index.tolist()
+#    book_titles = books[books.book_id.isin(reviews.iloc[top_n_indices].book_id.tolist())].title.tolist()
+#
+#    return book_titles, reviews.iloc[top_n_indices].index
 
 
 
@@ -349,6 +385,9 @@ def showInfo(iterator, n_clusters, n_results,n_books, review_max_len=350):
                     except ValueError:
                         st.warning(f"It looks like this author's books don't have enough reviews to generate {n_clusters} distinct clusters. Try decreasing how many clusters you look for!")
                         continue
+
+            ##### Experimental functionality, WIP #####
+
             #if showSimilarBooks:
             #    showInfo(iterator=info.title.tolist()[0],
             #            n_clusters=n_clusters,
@@ -371,14 +410,13 @@ datapath = '/media/einhard/Seagate Expansion Drive/3380_data/data/'
 # Stores tokenized reviews so they only need to be processed the first time that particular book is called
 tokenizedData = '/media/einhard/Seagate Expansion Drive/3380_data/data/'
 books_file = 'Filtered books/clean_filtered_books.csv'
-reviews_file = 'Filtered books/clean_filtered_reviews.csv'
 reviewsAll_file = 'Filtered books/reviews_for_cluster.csv'
 
 # Loading DataFrames
-books, reviews, reviewsAll = dataLoader(datapath, books_file, reviews_file, reviewsAll_file)
+books, reviewsAll = dataLoader(datapath, books_file, reviewsAll_file)
 
 # Loadding pre-trained embeddings and embedder for input sentences
-embed, reviews_array, descriptions_array = loadEmbeddings(datapath)
+embed = loadEmbeddings(datapath) # , reviews_array, descriptions_array
 
 # Setting base URL for Goodreads
 goodreadsURL = 'https://www.goodreads.com/book/show/'
@@ -527,22 +565,26 @@ elif re.match(r'description: ', input_text):
 elif re.match(r'list: all', input_text):
     st.table(books[['title', 'name', 'weighted_score']].rename(columns={'name':'author', 'weighted_score':'score'}))
 
-# Experimental book recommendations based on review text
-elif re.match(r'beta: ', input_text):
-    input_text = input_text.replace('beta: ', '')
-    book_title, review_index = findSemanticallySimilarReviews(query=input_text,
-                                               reviews=reviewsAll,
-                                               books=books,
-                                               n_books=n_books,
-                                               sentence_array=reviews_array)
-    with clusters:
-        for idx, i in enumerate(reviews.iloc[review_index].index):
-            reviews[reviews.index == i].review_text.tolist()[0]
-    showInfo(iterator=book_title,
-        n_clusters=n_clusters,
-        n_results=n_results,
-        n_books=n_books,
-        review_max_len=review_max_len)
+    listAll()
+
+##### Experimental functionality, WIP #####
+
+# # Experimental book recommendations based on review text
+# elif re.match(r'beta: ', input_text):
+#     input_text = input_text.replace('beta: ', '')
+#     book_title, review_index = findSemanticallySimilarReviews(query=input_text,
+#                                                reviews=reviewsAll,
+#                                                books=books,
+#                                                n_books=n_books,
+#                                                sentence_array=reviews_array)
+#     with clusters:
+#         for idx, i in enumerate(reviews.iloc[review_index].index):
+#             reviews[reviews.index == i].review_text.tolist()[0]
+#     showInfo(iterator=book_title,
+#         n_clusters=n_clusters,
+#         n_results=n_results,
+#         n_books=n_books,
+#         review_max_len=review_max_len)
 
 elif input_text:
     try:
