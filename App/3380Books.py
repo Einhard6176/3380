@@ -26,6 +26,19 @@ import streamlit as st
 st.set_page_config(page_title='3380 Books',
                   layout="wide",
                   page_icon= ':books:')
+st.markdown(
+    """
+    <style>
+    .reportview-container {
+        background: url("https://www.wallpaperflare.com/static/320/135/724/books-college-cover-data-wallpaper.jpg")
+    }
+   .sidebar .sidebar-content {
+        background: url("")
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 from streamlit import caching
 
 
