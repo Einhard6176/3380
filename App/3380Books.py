@@ -164,6 +164,7 @@ def showClusters(input_sentences, input_vectors, authorTitle, n_clusters, n_resu
         inner_product = np.inner(centre, input_vectors)
         indices = pd.Series(inner_product).nlargest(n_results).index
         clusteredInputs = list(input_sentences.iloc[indices])
+        # inputs_transposed = pd.DataFrame(clusteredInputs, index=range(len(clusteredInputs))).transpose()
 
         # Writes reviews that are closest to centroid
         st.markdown('---')
