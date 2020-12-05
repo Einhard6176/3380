@@ -1,3 +1,2 @@
-# 3380-Book-Recommendations
-Repo for book recommender project
-# 3380-Book-Recommendations
+# 3380 Books
+Repo for semantic similarity clustering in book reviews
