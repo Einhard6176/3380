@@ -34,11 +34,11 @@ One of the goals I had entering this project was to find a way to understand the
 
 In the image we can see that Harry Potter has a star rating of just under 4.5. This indicator, however, is not particularly useful when one considers the unbalanced distribution of user ratings:
 
-![ratingsDistribution](Presentation\ratingsDistribution.png)
+![ratingsDistribution](Presentation/ratingsDistribution.png)
 
 The vast majority of users will leave 4- or 5-star ratings. Additionally, it is difficult to translate a consistent rating system accross several books, since each individual user is very unlikely to rate more than a handful:
 
-![ratingsPerUser](Presentation\userRatingsDistribution.png)
+![ratingsPerUser](Presentation/userRatingsDistribution.png)
 
 ## Semantic similarity clustering
 
@@ -46,7 +46,7 @@ To get around the above issues, what 3380 does is employ natural language proces
 
 On the heatmap below we can see that the first three sentences on the y-axis are about cellphones, and each sentence is highly correlated with each other. However, the next three sentences are about weather, and the encoder correctly separates "Global Warming" from "I like my phone." However, "Global Warming" is still related to "Will it snow tomorrow?", even though the word choice is in itself not indicative of any similarity:
 
-![corrMap](Presentation\corrmap.png)
+![corrMap](Presentation/corrmap.png)
 
 With this is hand, I use Sklearn's KMeans algorithm to allocate each review to a particular cluster of similar reviews. The idea is that the more dense a particular cluster area is, the more similar the reviews will be to each other.
 
